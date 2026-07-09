@@ -1,0 +1,18 @@
+### Тест №1: Регистрация нового пользователя
+POST http://127.0.0.1:8000/api/auth/register/
+Content-Type: application/json
+
+{
+  "email": "player1@test.com",
+  "username": "player1",
+  "password": "supersecretpassword123"
+}
+
+### Тест №2: Логин и получение токена
+POST http://127.0.0.1:8000/api/auth/login/
+Content-Type: application/json
+
+{
+  "email": "player1@test.com",
+  "password": "supersecretpassword123"
+}
