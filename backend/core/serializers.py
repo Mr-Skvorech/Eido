@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import User, Quiz, Question, Choice
+from drf_extra_fields.fields import Base64ImageField
+from .models import User, Quiz, Question, Choice, GameRoom, Participant
 
 class ChoiceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -58,3 +59,38 @@ class UserSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user
+
+class QuestionSerializer(serializers.ModelSerializer):
+    image = Base64ImageField(required=False, allow_null=True) # Само разберет Base64 строку в файл!
+    choices = ChoiceSerializer(many=True)
+
+    class Meta:
+        model = Question
+        fields = ['id', 'text', 'time_limit', 'image', 'is_multiple_choice', 'choices']
+
+# Вспомогательный сериализатор для отображения участников внутри истории хоста
+class ParticipantHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Participant
+        fields = ['id', 'name', 'score']
+
+# 1. Сериализатор истории для Организатора
+class HostedGameHistorySerializer(serializers.ModelSerializer):
+    quiz_title = serializers.CharField(source='quiz.title', read_only=True)
+    participants = ParticipantHistorySerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = GameRoom
+        fields = ['id', 'pin', 'quiz_title', 'created_at', 'participants']
+
+# 2. Сериализатор истории для Игрока
+class PlayerGameHistorySerializer(serializers.ModelSerializer):
+    quiz_title = serializers.CharField(source='room.quiz.title', read_only=True)
+    room_pin = serializers.CharField(source='room.pin', read_only=True)
+    game_date = serializers.DateTimeField(source='room.created_at', read_only=True)
+    # Можно добавить поле, чтобы показать общее количество игроков в той комнате
+    total_participants = serializers.IntegerField(source='room.participants.count', read_only=True)
+
+    class Meta:
+        model = Participant
+        fields = ['id', 'room_pin', 'quiz_title', 'score', 'game_date', 'total_participants']

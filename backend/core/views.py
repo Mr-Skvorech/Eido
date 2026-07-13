@@ -1,7 +1,13 @@
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .models import User, Quiz
-from .serializers import UserSerializer, QuizSerializer
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from .serializers import UserSerializer, QuizSerializer, HostedGameHistorySerializer, PlayerGameHistorySerializer
+from .models import User, Quiz, GameRoom, Participant
+from django.shortcuts import get_object_or_404
+import random
+import string
+import uuid
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -15,3 +21,124 @@ class QuizListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         # Возвращаем квизы только текущего пользователя, сортируем от новых к старым
         return Quiz.objects.filter(creator=self.request.user).order_by('-created_at')
+
+def generate_unique_pin():
+    """Генерирует уникальный 6-значный цифровой PIN для активной комнаты."""
+    while True:
+        pin = ''.join(random.choices(string.digits, k=6))
+        # Проверяем, что PIN не используется в данный момент в активных комнатах
+        if not GameRoom.objects.filter(pin=pin, is_active=True).exists():
+            return pin
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def start_game_room(request, quiz_id):
+    """Создает игровую комнату для квиза и возвращает PIN."""
+    # Убедимся, что квиз существует и принадлежит текущему пользователю
+    quiz = get_object_or_404(Quiz, id=quiz_id, creator=request.user)
+
+    # Защита от дублей: если для этого квиза уже есть активная комната, возвращаем её
+    active_room = GameRoom.objects.filter(quiz=quiz, is_active=True).first()
+    if active_room:
+        return Response({
+            'pin': active_room.pin,
+            'message': 'Room is already active.'
+        }, status=status.HTTP_200_OK)
+
+    pin = generate_unique_pin()
+    room = GameRoom.objects.create(
+        quiz=quiz,
+        pin=pin,
+        is_active=True
+    )
+
+    return Response({
+        'pin': room.pin,
+        'room_id': room.id
+    }, status=status.HTTP_201_CREATED)
+
+@api_view(['POST'])
+@permission_classes([AllowAny]) # Игрокам не нужен JWT-токен
+def join_game(request):
+    """Регистрация игрока в комнате по PIN-коду."""
+    pin = request.data.get('pin')
+    name = request.data.get('name')
+
+    if not pin or not name:
+        return Response({'error': 'PIN и имя обязательны.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Ищем активную комнату по PIN
+    room = GameRoom.objects.filter(pin=pin, is_active=True).first()
+    if not room:
+        return Response({'error': 'Комната не найдена или игра уже завершена.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Создаем участника
+    session_token = uuid.uuid4()
+    participant = Participant(
+        room=room,
+        name=name,
+        session_token=session_token
+    )
+    
+    # НОВАЯ ЛОГИКА: Если игрок авторизован, привязываем его профиль
+    if request.user.is_authenticated:
+        participant.user = request.user
+        
+    participant.save() # Сохраняем в БД
+
+    return Response({
+        'message': 'Успешно присоединились',
+        'session_token': str(session_token),
+        'participant_id': participant.id,
+        'name': participant.name
+    }, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated]) # Только авторизованный ведущий может закрыть игру
+def end_game(request, pin):
+    try:
+        # Находим активную комнату по PIN
+        room = GameRoom.objects.get(pin=pin, is_active=True)
+    except GameRoom.DoesNotExist:
+        return Response({"error": "Активная комната не найдена"}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Получаем финальные скоры от фронтенда ведущего
+    # Формат данных ожидается: {"scores": {"session_token_1": 2500, "session_token_2": 1800}}
+    scores_data = request.data.get('scores', {})
+    
+    # Обновляем очки участников в БД
+    for token, score in scores_data.items():
+        Participant.objects.filter(room=room, session_token=token).update(score=score)
+    
+    # Деактивируем комнату, чтобы по этому PIN больше никто не зашел
+    room.is_active = False
+    room.save()
+    
+    return Response({"message": "Игра успешно завершена, результаты сохранены"}, status=status.HTTP_200_OK)
+
+# История игр, которые пользователь ОРГАНИЗОВАЛ
+class HostedGamesHistoryListView(generics.ListAPIView):
+    serializer_class = HostedGameHistorySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Выбираем только НЕАКТИВНЫЕ комнаты (игры завершены), созданные этим пользователем
+        return GameRoom.objects.filter(
+            quiz__creator=user, 
+            is_active=False
+        ).order_by('-created_at')
+
+# История игр, в которых пользователь УЧАСТВОВАЛ как игрок
+class PlayerGamesHistoryListView(generics.ListAPIView):
+    serializer_class = PlayerGameHistorySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Выбираем только те записи участников, которые привязаны к юзеру
+        # и где комната уже закрыта (игра завершена)
+        return Participant.objects.filter(
+            user=user, 
+            room__is_active=False
+        ).order_by('-room__created_at')

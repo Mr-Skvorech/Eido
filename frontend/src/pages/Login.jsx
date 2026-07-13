@@ -56,7 +56,7 @@ export default function Login() {
                             />
                         </div>
                     </div>
-                    <div className="uk-margin">
+                     <div className="uk-margin">
                         <button className="uk-button uk-button-primary uk-width-1-1" type="submit">
                             Войти
                         </button>

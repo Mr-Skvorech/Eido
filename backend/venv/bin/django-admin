@@ -1,4 +1,4 @@
-#!/home/michael/Документы/Документы/VsCode_project/Eido/Eido/Backend/venv/bin/python
+#!/home/michael/Документы/Документы/VsCode_project/Eido/Eido/backend/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

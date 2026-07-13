@@ -21,11 +21,15 @@ class Quiz(models.Model):
     def __str__(self):
         return self.title
 
-# Модель вопроса
+# Вопрос
 class Question(models.Model):
     quiz = models.ForeignKey(Quiz, related_name='questions', on_delete=models.CASCADE)
     text = models.CharField(max_length=500)
     time_limit = models.IntegerField(default=20, help_text="Время на ответ в секундах")
+    
+    # --- НОВЫЕ ПОЛЯ ---
+    image = models.ImageField(upload_to='question_images/', blank=True, null=True, help_text="Изображение к вопросу")
+    is_multiple_choice = models.BooleanField(default=False, help_text="Разрешить выбор нескольких вариантов")
 
     def __str__(self):
         return f"{self.quiz.title} - {self.text[:20]}"
@@ -55,6 +59,14 @@ class Participant(models.Model):
     name = models.CharField(max_length=100)
     score = models.IntegerField(default=0)
     session_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True) # Чтобы можно было перезайти
+
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='played_games'
+    )
 
     def __str__(self):
         return f"{self.name} ({self.room.pin})"

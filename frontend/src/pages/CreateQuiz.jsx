@@ -8,11 +8,22 @@ export default function CreateQuiz() {
     const [description, setDescription] = useState('');
     const [error, setError] = useState(null);
     
+    const convertToBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+            const fileReader = new FileReader();
+            fileReader.readAsDataURL(file);
+            fileReader.onload = () => resolve(fileReader.result);
+            fileReader.onerror = (error) => reject(error);
+        });
+    };
+
     // Структура по умолчанию: 1 вопрос, 4 варианта (первый помечен как правильный)
     const [questions, setQuestions] = useState([
         { 
             text: '', 
             time_limit: 30, 
+            is_multiple_choice: false, // по умолчанию одиночный выбор
+            image: null, // строка Base64
             choices: [
                 { text: '', is_correct: true },
                 { text: '', is_correct: false },
@@ -22,11 +33,13 @@ export default function CreateQuiz() {
         }
     ]);
 
-    // Добавление нового пустого вопроса в форму
+    // Добавление нового пустого вопроса в форму (Исправлено: добавлены дефолтные поля)
     const handleAddQuestion = () => {
         setQuestions([...questions, {
             text: '',
             time_limit: 30,
+            is_multiple_choice: false,
+            image: null,
             choices: [
                 { text: '', is_correct: true },
                 { text: '', is_correct: false },
@@ -34,6 +47,18 @@ export default function CreateQuiz() {
                 { text: '', is_correct: false }
             ]
         }]);
+    };
+
+    const handleImageChange = async (qIndex, file) => {
+        if (!file) return;
+        try {
+            const base64 = await convertToBase64(file);
+            const updatedQuestions = [...questions];
+            updatedQuestions[qIndex].image = base64; // сохраняем строку в стейт
+            setQuestions(updatedQuestions);
+        } catch (err) {
+            console.error("Ошибка кодирования картинки", err);
+        }
     };
 
     // Изменение текста вопроса или лимита времени
@@ -50,12 +75,20 @@ export default function CreateQuiz() {
         setQuestions(updatedQuestions);
     };
 
-    // Переключение правильного ответа через Radio button
+    // Переключение правильного ответа
     const handleCorrectChoiceChange = (qIndex, cIndex) => {
         const updatedQuestions = [...questions];
-        updatedQuestions[qIndex].choices.forEach((choice, index) => {
-            choice.is_correct = index === cIndex;
-        });
+        const question = updatedQuestions[qIndex];
+
+        if (question.is_multiple_choice) {
+            // Для мультивыбора - инвертируем значение (чекбоксы)
+            question.choices[cIndex].is_correct = !question.choices[cIndex].is_correct;
+        } else {
+            // Для одиночного выбора - зануляем остальные (радио)
+            question.choices.forEach((choice, index) => {
+                choice.is_correct = index === cIndex;
+            });
+        }
         setQuestions(updatedQuestions);
     };
 
@@ -157,13 +190,43 @@ export default function CreateQuiz() {
                             </div>
                         </div>
 
-                        {/* Варианты ответов */}
+                        {/* Панель настроек вопроса (Тип и Картинка) */}
+                        <div className="uk-grid-small uk-margin uk-child-width-1-2@m" uk-grid="true">
+                            <div>
+                                <label className="uk-form-label uk-margin-small-right">
+                                    <input 
+                                        className="uk-checkbox uk-margin-small-right" 
+                                        type="checkbox" 
+                                        checked={question.is_multiple_choice}
+                                        onChange={(e) => handleQuestionChange(qIndex, 'is_multiple_choice', e.target.checked)}
+                                    />
+                                    Множественный выбор ответов (несколько правильных)
+                                </label>
+                            </div>
+
+                            <div>
+                                <div uk-form-custom="target: true">
+                                    <input type="file" accept="image/*" onChange={(e) => handleImageChange(qIndex, e.target.files[0])} />
+                                    <button className="uk-button uk-button-default uk-button-small" type="button" tabIndex="-1">
+                                        <span uk-icon="icon: image" className="uk-margin-small-right"></span>
+                                        {question.image ? 'Картинка загружена (изменить)' : 'Добавить картинку'}
+                                    </button>
+                                </div>
+                                {question.image && (
+                                    <div className="uk-margin-small-top">
+                                        <img src={question.image} alt="Превью" style={{ maxHeight: '60px', borderRadius: '4px' }} />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Варианты ответов (Исправлено: возвращен текстовый инпут) */}
                         <div className="uk-child-width-1-2@m uk-grid-small" uk-grid="true">
                             {question.choices.map((choice, cIndex) => (
                                 <div key={cIndex} className="uk-flex uk-flex-middle uk-margin-small-bottom">
                                     <input 
-                                        className="uk-radio uk-margin-right" 
-                                        type="radio" 
+                                        className={question.is_multiple_choice ? "uk-checkbox uk-margin-right" : "uk-radio uk-margin-right"} 
+                                        type={question.is_multiple_choice ? "checkbox" : "radio"} 
                                         name={`correct-choice-${qIndex}`}
                                         checked={choice.is_correct}
                                         onChange={() => handleCorrectChoiceChange(qIndex, cIndex)}
@@ -181,7 +244,7 @@ export default function CreateQuiz() {
                             ))}
                         </div>
                     </div>
-                ))}
+                ))} {/* Исправлено: синтаксически корректное закрытие цикла */}
 
                 {/* Нижняя панель действий */}
                 <div className="uk-margin-medium-top uk-flex uk-flex-between">
