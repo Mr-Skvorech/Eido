@@ -23,7 +23,7 @@ async def join_room(sid, data):
     """
     pin = data.get('pin')
     if pin:
-        sio.enter_room(sid, pin)
+        await sio.enter_room(sid, pin)
         print(f"[Socket] {sid} вошел в комнату {pin}")
         await sio.emit('room_joined', {'message': f'Вы успешно вошли в комнату {pin}'}, room=sid)
 
@@ -50,36 +50,36 @@ async def start_quiz(sid, data):
     if pin:
         print(f"[Socket] Запуск игры в комнате {pin}")
         # Рассылаем всем участникам комнаты событие 'game_started'
-        await sio.emit('game_started', room=pin)
+        await sio.emit('game_started', {'pin': pin}, room=pin)
 
 @sio.on('send_question')
-def on_send_question(sid, data):
+async def on_send_question(sid, data):
     """Ведущий отправляет новый вопрос игрокам."""
     room = data.get('room')
     question_data = data.get('question')
     # Пересылаем вопрос всем в комнате, кроме самого ведущего
-    sio.emit('receive_question', question_data, room=room, skip_sid=sid)
+    await sio.emit('receive_question', question_data, room=room, skip_sid=sid)
 
 @sio.on('show_results')
-def on_show_results(sid, data):
+async def on_show_results(sid, data):
     """Ведущий показывает правильный ответ и результаты после окончания таймера."""
     room = data.get('room')
     results_data = data.get('results')
     # Рассылаем результаты игрокам (например, id правильного ответа)
-    sio.emit('results_revealed', results_data, room=room, skip_sid=sid)
+    await sio.emit('results_revealed', results_data, room=room, skip_sid=sid)
 
 @sio.on('end_quiz')
-def on_end_quiz(sid, data):
+async def on_end_quiz(sid, data):
     """Ведущий завершает игру (показан финальный подиум)."""
     room = data.get('room')
     leaderboard = data.get('leaderboard')
-    sio.emit('quiz_ended', leaderboard, room=room, skip_sid=sid)
+    await sio.emit('quiz_ended', leaderboard, room=room, skip_sid=sid)
 
 
 # --- ЛОГИКА ИГРОКА (Player -> Server -> Host) ---
 
 @sio.on('submit_answer')
-def on_submit_answer(sid, data):
+async def on_submit_answer(sid, data):
     """Игрок отправляет свой ответ."""
     room = data.get('room')
     answer_data = {
@@ -90,4 +90,4 @@ def on_submit_answer(sid, data):
     # Отправляем ответ ТОЛЬКО ведущему, чтобы другие игроки не видели чужие ответы
     # Для простоты шлем всем в комнате, но фронтенд игроков будет игнорировать событие 'player_answered'
     # (Или можно сохранять sid ведущего при создании комнаты и слать адресно ему)
-    sio.emit('player_answered', answer_data, room=room, skip_sid=sid)
+    await sio.emit('player_answered', answer_data, room=room, skip_sid=sid)

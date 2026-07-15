@@ -1,36 +1,69 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Maps } from 'react-router-dom';
-import { io } from 'socket.io-client';
-
-// Подключаемся к нашему серверу (в будущем URL лучше вынести в .env)
-const socket = io('http://127.0.0.1:8000');
+import { useEffect, useState, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import socket from '../utils/socket';
 
 export default function HostLobby() {
-  const { pin } = useParams(); // Получаем PIN из URL
+  const { quizId, pin } = useParams();
   const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
 
+  // Флаг актуальности эффекта — защищает от гонки при StrictMode double-mount
+  const activeRef = useRef(true);
+
   useEffect(() => {
-    // 1. Ведущий заходит в комнату (чтобы слушать события именно этого PIN)
-    socket.emit('join_room', { pin });
+    activeRef.current = true;
 
-    // 2. Слушаем событие добавления новых игроков
-    socket.on('new_player', (data) => {
-      setPlayers((prev) => [...prev, data.name]);
-    });
+    const onPlayerJoined = (data) => {
+      // Игнорируем событие, если этот инстанс эффекта уже "неактуален"
+      // (например, компонент успел размонтироваться/перемонтироваться)
+      if (!activeRef.current) return;
 
-    // Очистка слушателей при уходе со страницы
+      console.log('✅ player_joined data:', data);
+      if (data?.name) {
+        setPlayers((prev) => {
+          // Защита от дублей на случай повторного join_room в StrictMode
+          if (prev.includes(data.name)) return prev;
+          return [...prev, data.name];
+        });
+      } else {
+        console.warn('Неизвестный формат данных:', data);
+      }
+    };
+
+    const onRoomJoined = (data) => {
+      console.log('🚪 room_joined:', data);
+    };
+
+    // Подписываемся ТОЛЬКО на конкретные события — никакого onAny в проде,
+    // он глобальный и снимается через offAny(), что ломает другие подписчики
+    socket.on('new_player', onPlayerJoined);
+    socket.on('room_joined', onRoomJoined);
+
+    // Функция входа в комнату — вызываем при подключении сокета
+    const doJoin = () => {
+      socket.emit('join_room', { pin });
+      console.log('📤 join_room отправлен с pin:', JSON.stringify(pin));
+    };
+
+    if (socket.connected) {
+      doJoin();
+    } else {
+      // Если на момент монтирования сокет ещё не подключён —
+      // ждём connect и входим в комнату сразу после него
+      socket.once('connect', doJoin);
+    }
+
     return () => {
-      socket.off('new_player');
+      activeRef.current = false;
+      socket.off('new_player', onPlayerJoined);
+      socket.off('room_joined', onRoomJoined);
+      socket.off('connect', doJoin);
     };
   }, [pin]);
 
   const handleStartQuiz = () => {
-    // Отправляем на бэкенд команду о старте игры, передавая PIN
     socket.emit('start_quiz', { pin });
-    
-    // Переводим ведущего на экран отображения первого вопроса
-    navigate(`/host/game/${pin}`); 
+    navigate(`/host/game/${quizId}/${pin}`);
   };
 
   return (
@@ -47,7 +80,7 @@ export default function HostLobby() {
           <h3 className="uk-margin-remove">
             Игроков: <span className="uk-badge">{players.length}</span>
           </h3>
-          <button 
+          <button
             className="uk-button uk-button-primary uk-button-large"
             onClick={handleStartQuiz}
             disabled={players.length === 0}
@@ -56,7 +89,6 @@ export default function HostLobby() {
           </button>
         </div>
 
-        {/* Сетка с именами подключившихся игроков */}
         <div className="uk-grid-small uk-child-width-1-2 uk-child-width-1-4@s uk-text-center" data-uk-grid>
           {players.length === 0 ? (
             <div className="uk-width-1-1 uk-text-muted">

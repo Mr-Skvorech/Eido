@@ -14,6 +14,13 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = (AllowAny,) # Доступно всем без токена
     serializer_class = UserSerializer
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def me(request):
+    """Отдаёт данные текущего авторизованного пользователя (для шапки личного кабинета)."""
+    serializer = UserSerializer(request.user)
+    return Response(serializer.data)
+
 class QuizListCreateView(generics.ListCreateAPIView):
     serializer_class = QuizSerializer
     permission_classes = [IsAuthenticated] # Доступ только по JWT-токену
@@ -29,6 +36,14 @@ def generate_unique_pin():
         # Проверяем, что PIN не используется в данный момент в активных комнатах
         if not GameRoom.objects.filter(pin=pin, is_active=True).exists():
             return pin
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_quiz(request, quiz_id):
+    """Возвращает данные квиза по его ID, если он принадлежит текущему пользователю."""
+    quiz = get_object_or_404(Quiz, id=quiz_id, creator=request.user)
+    serializer = QuizSerializer(quiz)
+    return Response(serializer.data)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -92,6 +107,18 @@ def join_game(request):
         'participant_id': participant.id,
         'name': participant.name
     }, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_room_results(request, pin):
+    """Отдаёт список участников комнаты с их очками (для экрана финальных результатов)."""
+    room = get_object_or_404(GameRoom, pin=pin)
+    participants = Participant.objects.filter(room=room).order_by('-score')
+    data = [
+        {'id': p.id, 'name': p.name, 'score': p.score}
+        for p in participants
+    ]
+    return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated]) # Только авторизованный ведущий может закрыть игру

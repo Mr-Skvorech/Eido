@@ -19,7 +19,7 @@ const HostGame = () => {
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
-        const response = await api.get(`/api/quizzes/${quizId}/`);
+        const response = await api.get(`/api/quizzes/${quizId}/get/`);
         setQuiz(response.data);
       } catch (error) {
         console.error('Ошибка загрузки квиза', error);
@@ -91,6 +91,7 @@ const HostGame = () => {
     const correctChoice = question.choices.find(c => c.is_correct);
 
     socket.emit('show_results', { room: roomId, results: { correct_choice_id: correctChoice.id } });
+    handleNext(); // Переходим к следующему вопросу или концу игры
   };
 
   // Переход к следующему вопросу или концу игры
@@ -163,7 +164,7 @@ const HostGame = () => {
             </div>
             <p>Игроки думают...</p>
             <button className="uk-button uk-button-danger" onClick={handleTimeUp}>
-            Остановить таймер (Все ответили)
+              Остановить таймер (Все ответили)
             </button>
         </div>
         )}

@@ -2,15 +2,24 @@ from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import RegisterView, QuizListCreateView, start_game_room, join_game, HostedGamesHistoryListView, PlayerGamesHistoryListView
+from .views import RegisterView, QuizListCreateView, start_game_room, get_quiz, join_game, end_game, get_room_results, me, HostedGamesHistoryListView, PlayerGamesHistoryListView
 
 urlpatterns = [
-    path('register/', RegisterView.as_view(), name='auth_register'),
-    path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    # Добавили префикс  к авторизации
+    path('auth/register/', RegisterView.as_view(), name='auth_register'),
+    path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('auth/me/', me, name='auth-me'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    # Добавили префикс  к квизам (из-за этого была 404)
     path('quizzes/', QuizListCreateView.as_view(), name='quiz-list-create'),
     path('quizzes/<int:quiz_id>/start/', start_game_room, name='start-game-room'),
+    path('quizzes/<int:quiz_id>/get/', get_quiz, name='get-quiz'),
+    
+    # Эти пути у тебя уже были правильными
     path('game/join/', join_game, name='join-game'),
-    path('api/history/hosted/', HostedGamesHistoryListView.as_view(), name='hosted-history'),
-    path('api/history/played/', PlayerGamesHistoryListView.as_view(), name='player-history'),
+    path('game/rooms/<str:room_id>/end/', end_game, name='end-game'),
+    path('game/rooms/<str:room_id>/results/', get_room_results, name='room-results'),
+    path('history/hosted/', HostedGamesHistoryListView.as_view(), name='hosted-history'),
+    path('history/played/', PlayerGamesHistoryListView.as_view(), name='player-history'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

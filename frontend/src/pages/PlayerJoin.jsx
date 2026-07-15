@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { io } from 'socket.io-client';
-
-const socket = io('http://127.0.0.1:8000');
+import socket from '../utils/socket';
 
 export default function PlayerJoin() {
   const [pin, setPin] = useState('');
@@ -12,14 +10,16 @@ export default function PlayerJoin() {
   
   const navigate = useNavigate();
 
+  const returnBack = async () => {
+    navigate('/');
+  }
+
   const handleJoin = async (e) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
 
     try {
-      // Подготавливаем заголовки. Добавляем токен, если он есть.
-      // ВАЖНО: замени 'access_token' на тот ключ, под которым ты хранишь токен при логине!
       const token = localStorage.getItem('access_token'); 
       const headers = { 'Content-Type': 'application/json' };
       if (token) {
@@ -29,7 +29,7 @@ export default function PlayerJoin() {
       // 1. Отправляем запрос на бэкенд (регистрация в MySQL)
       const res = await fetch('http://127.0.0.1:8000/api/game/join/', {
         method: 'POST',
-        headers: headers, // Используем наши заголовки
+        headers: headers,
         body: JSON.stringify({ pin, name })
       });
       
@@ -41,13 +41,19 @@ export default function PlayerJoin() {
         return;
       }
 
-      // 2. Сохраняем session_token, чтобы игрок мог обновить страницу
+      // 2. Сохраняем данные игрока, чтобы PlayerGame/PlayerWaiting могли их прочитать
       localStorage.setItem('session_token', data.session_token);
+      localStorage.setItem('player_name', name);
+      localStorage.setItem('room_pin', pin);
 
-      // 3. Отправляем событие по WebSockets, чтобы ведущий увидел имя
+      // 3. Входим в комнату Socket.IO (без этого игрок не в комнате физически —
+      //    события game_started/receive_question/quiz_ended до него не дойдут)
+      socket.emit('join_room', { pin });
+
+      // 4. Отправляем событие, чтобы ведущий увидел имя в лобби
       socket.emit('player_joined', { pin, name });
 
-      // 4. Переводим игрока в его комнату ожидания (заглушка на будущее)
+      // 5. Переводим игрока в его комнату ожидания
       navigate('/player/waiting');
 
     } catch (err) {
@@ -101,13 +107,19 @@ export default function PlayerJoin() {
           <div className="uk-margin">
             <button 
               type="submit" 
-              className="uk-button uk-button-primary uk-button-large uk-width-1-1"
+              className="uk-button uk-button-primary uk-button-large uk-width-1-1 uk-margin-small"
               disabled={isLoading}
             >
               {isLoading ? <div data-uk-spinner="ratio: 0.8"></div> : 'Войти'}
             </button>
           </div>
         </form>
+        <button 
+          className="uk-button uk-button-primary uk-button-large uk-width-1-1 uk-margin-small"
+          onClick={returnBack}
+        >
+          {'На главную'}
+        </button>
       </div>
     </div>
   );

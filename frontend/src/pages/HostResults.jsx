@@ -13,7 +13,7 @@ const HostResults = () => {
       try {
         // # Запрашиваем участников этой комнаты
         // # (Эндпоинт получения игроков комнаты у тебя, скорее всего, уже есть для лобби, используем его)
-        const response = await api.get(`/api/game/rooms/${roomId}/participants/`);
+        const response = await api.get(`api/game/rooms/${roomId}/results/`);
         
         // # Сортируем игроков по очкам (от большего к меньшему)
         const sortedPlayers = response.data.sort((a, b) => b.score - a.score);
@@ -21,6 +21,7 @@ const HostResults = () => {
       } catch (error) {
         console.error("Не удалось загрузить финальные результаты", error);
       } finally {
+        await api.post(`api/game/rooms/${roomId}/end/`); // Отправляем сигнал серверу о завершении игры
         setLoading(false);
       }
     };

@@ -1,21 +1,22 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { io } from 'socket.io-client';
-
-const socket = io('http://127.0.0.1:8000');
+import socket from '../utils/socket';
 
 export default function PlayerWaiting() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Слушаем сигнал от сервера о том, что ведущий запустил игру
-    socket.on('game_started', () => {
-      // Перенаправляем игрока на экран с кнопками ответов
-      navigate('/player/game'); 
-    });
+    // Сервер шлёт { pin: '...' } — используем именно это значение,
+    // а не полагаемся на то, что было в localStorage при заходе на страницу
+    const onGameStarted = (data) => {
+      const pin = data?.pin || localStorage.getItem('room_pin');
+      navigate(`/player/game/${pin}`);
+    };
+
+    socket.on('game_started', onGameStarted);
 
     return () => {
-      socket.off('game_started');
+      socket.off('game_started', onGameStarted);
     };
   }, [navigate]);
 
