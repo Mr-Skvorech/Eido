@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
@@ -28,19 +31,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-oo&86=4rw%pmqy&_anwkm&by%kd^x1=g+00e=76nm=&nkkg=3d'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Безопасность: DEBUG должен быть False в продакшене
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',
+    os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(','),
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:5173',
+    os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:5173').split(','),
 ]
 
 
@@ -96,16 +99,13 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-'default': {
+    'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'eido_quiz',
-        'USER': 'eido_user',
-        'PASSWORD': '@123(AbG)710!@',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        }
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
 
