@@ -1,7 +1,10 @@
 import socketio
+from asgiref.sync import sync_to_async
+from .models import GameRoom, Participant
 
 # cors_allowed_origins='*' нужен для локальной разработки с React (Vite)
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
+connected_players = {}
 
 @sio.event
 async def connect(sid, environ, auth):
@@ -14,6 +17,37 @@ async def connect(sid, environ, auth):
 @sio.event
 async def disconnect(sid):
     print(f"[Socket] Клиент отключился: {sid}")
+ 
+    player = connected_players.pop(sid, None)
+    if not player:
+        return  # это был хост или кто-то без сохранённой сессии игрока
+ 
+    pin = player.get('pin')
+    session_token = player.get('session_token')
+ 
+    if pin:
+        # Сообщаем хосту в реальном времени убрать игрока из списка лобби
+        await sio.emit('player_left', {'session_token': session_token}, room=pin)
+ 
+    if session_token:
+        await _remove_abandoned_participant(session_token)
+
+@sync_to_async
+def _remove_abandoned_participant(session_token):
+    """Удаляет запись участника, если игра ещё не началась —
+    он ничего не успел сыграть, терять по факту нечего.
+    Если игра уже идёт — запись остаётся (частичный счёт валиден)."""
+    try:
+        participant = Participant.objects.select_related('room').get(session_token=session_token)
+        if not participant.room.is_started:
+            participant.delete()
+    except Participant.DoesNotExist:
+        pass
+ 
+ 
+@sync_to_async
+def _mark_room_started(pin):
+    GameRoom.objects.filter(pin=pin).update(is_started=True)
 
 @sio.event
 async def join_room(sid, data):
@@ -35,10 +69,12 @@ async def player_joined(sid, data):
     """
     pin = data.get('pin')
     name = data.get('name')
-    
+    session_token = data.get('session_token')  # уникальный ID участника (из join_game)
+ 
     if pin and name:
-        # Отправляем событие 'new_player' всем в комнате (включая ведущего)
-        await sio.emit('new_player', {'name': name}, room=pin)
+        connected_players[sid] = {'pin': pin, 'session_token': session_token}
+ 
+        await sio.emit('new_player', {'name': name, 'session_token': session_token}, room=pin)
         print(f"[Socket] Игрок {name} зашел в комнату {pin}")
 
 @sio.event
@@ -50,6 +86,7 @@ async def start_quiz(sid, data):
     if pin:
         print(f"[Socket] Запуск игры в комнате {pin}")
         # Рассылаем всем участникам комнаты событие 'game_started'
+        await _mark_room_started(pin)  # с этого момента disconnect не удаляет участников
         await sio.emit('game_started', {'pin': pin}, room=pin)
 
 @sio.on('send_question')

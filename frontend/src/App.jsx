@@ -3,6 +3,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateQuiz from './pages/CreateQuiz';
+import ErrorPage from './pages/ErrorPage';
 
 // Host
 import HostLobby from './pages/HostLobby';
@@ -88,10 +89,10 @@ function App() {
             } 
         />
 
-        {/* <Route
+        <Route
           path="*"
           element={<ErrorPage />}
-        /> */}
+        />
       </Routes>
     </Router>
   );

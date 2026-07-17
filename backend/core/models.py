@@ -48,8 +48,9 @@ class GameRoom(models.Model):
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
     pin = models.CharField(max_length=6, unique=True)
     is_active = models.BooleanField(default=True)
+    is_started = models.BooleanField(default=False)  # True после старта игры — до этого можно чистить "призрачных" участников
     created_at = models.DateTimeField(auto_now_add=True)
-
+ 
     def __str__(self):
         return f"Room {self.pin} ({self.quiz.title})"
 

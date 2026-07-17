@@ -35,7 +35,7 @@ export default function Dashboard() {
             .then(res => setCurrentUser(res.data))
             .catch(err => {
                 if (err.message === "Unauthorized") {
-                    // console.log(err);
+                    console.log(err);
                     navigate('/login');
                 } else {
                     notifyError("Не удалось загрузить данные аккаунта. Попробуйте ещё раз.");

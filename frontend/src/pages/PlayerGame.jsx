@@ -99,13 +99,14 @@ const PlayerGame = () => {
   }
 
   if (status === 'question' || status === 'answered') {
+    console.log('../backend' + currentQuestion.image);
     return (
       <div className="uk-container uk-margin-top uk-text-center">
         <h3>{currentQuestion?.text}</h3>
         
         {currentQuestion?.image && (
             <div className="uk-margin-bottom">
-                <img src={currentQuestion.image} alt="Вопрос" style={{maxHeight: '300px', borderRadius: '8px'}} />
+                <img src={`http://localhost:8000${currentQuestion.image}`} alt="Вопрос" style={{maxHeight: '300px', borderRadius: '8px'}} />
             </div>
         )}
 

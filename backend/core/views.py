@@ -64,7 +64,8 @@ def start_game_room(request, quiz_id):
     room = GameRoom.objects.create(
         quiz=quiz,
         pin=pin,
-        is_active=True
+        is_active=True,
+        is_started=False  # Комната только что создана, игра ещё не началась
     )
 
     return Response({

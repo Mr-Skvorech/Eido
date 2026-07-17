@@ -48,7 +48,7 @@ export default function PlayerJoin() {
 
       socket.emit('join_room', { pin });
 
-      socket.emit('player_joined', { pin, name });
+      socket.emit('player_joined', { pin, name, session_token: data.session_token });
 
       navigate('/player/waiting');
 

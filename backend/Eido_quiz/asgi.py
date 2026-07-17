@@ -8,14 +8,19 @@ https://docs.djangoproject.com/en/6.0/howto/deployment/asgi/
 """
 
 import os
-from django.core.asgi import get_asgi_application
-import socketio
-
-# Импортируем sio из твоего приложения core
-from core.sockets import sio 
-
+ 
+# ВАЖНО: настройки Django и django.setup() должны выполниться
+# ДО импорта core.sockets — иначе любой импорт моделей Django внутри
+# sockets.py упадёт с AppRegistryNotReady
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Eido_quiz.settings')
-
+ 
+import django
+django.setup()
+ 
+from django.core.asgi import get_asgi_application
 django_asgi_app = get_asgi_application()
-
+ 
+import socketio
+from core.sockets import sio  # теперь можно безопасно использовать ORM внутри sockets.py
+ 
 application = socketio.ASGIApp(sio, django_asgi_app)

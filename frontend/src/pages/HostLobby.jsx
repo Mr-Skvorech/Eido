@@ -18,7 +18,6 @@ export default function HostLobby() {
       // (например, компонент успел размонтироваться/перемонтироваться)
       if (!activeRef.current) return;
 
-      console.log('✅ player_joined data:', data);
       if (data?.name) {
         setPlayers((prev) => {
           // Защита от дублей на случай повторного join_room в StrictMode
@@ -30,16 +29,21 @@ export default function HostLobby() {
       }
     };
 
+    const onPlayerLeft = (data) => {
+      if (!activeRef.current) return;
+      setPlayers((prev) => prev.filter((p) => p.session_token !== data.session_token));
+    };
+
     const onRoomJoined = (data) => {
-      // console.log('🚪 room_joined:', data);
+      // Игнорируем, т.к. мы уже в комнате и просто ждём игроков
     };
 
     socket.on('new_player', onPlayerJoined);
     socket.on('room_joined', onRoomJoined);
+    socket.on('player_left', onPlayerLeft);
 
     const doJoin = () => {
       socket.emit('join_room', { pin });
-      // console.log('📤 join_room отправлен с pin:', JSON.stringify(pin));
     };
 
     if (socket.connected) {
@@ -54,6 +58,7 @@ export default function HostLobby() {
       activeRef.current = false;
       socket.off('new_player', onPlayerJoined);
       socket.off('room_joined', onRoomJoined);
+      socket.off('player_left', onPlayerLeft);
       socket.off('connect', doJoin);
     };
   }, [pin]);
@@ -92,10 +97,10 @@ export default function HostLobby() {
               Ожидание игроков...
             </div>
           ) : (
-            players.map((name, index) => (
-              <div key={index}>
+            players.map((player) => (
+              <div key={player}>
                 <div className="uk-card uk-card-secondary uk-card-body uk-padding-small uk-border-rounded">
-                  <strong>{name}</strong>
+                  <strong>{player}</strong>
                 </div>
               </div>
             ))
