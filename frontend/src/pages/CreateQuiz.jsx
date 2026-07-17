@@ -62,9 +62,28 @@ export default function CreateQuiz() {
     };
 
     // Изменение текста вопроса или лимита времени
+    // Изменение текста вопроса, лимита времени или типа выбора
     const handleQuestionChange = (qIndex, field, value) => {
         const updatedQuestions = [...questions];
         updatedQuestions[qIndex][field] = value;
+
+        // Если переключаем на одиночный выбор, оставляем только один правильный ответ
+        if (field === 'is_multiple_choice' && value === false) {
+            let foundCorrect = false;
+            updatedQuestions[qIndex].choices.forEach(choice => {
+                if (choice.is_correct && !foundCorrect) {
+                    foundCorrect = true; // Оставляем первый найденный правильный
+                } else {
+                    choice.is_correct = false; // Все остальные сбрасываем
+                }
+            });
+            
+            // Защита от дурака: если ни одного правильного не осталось, делаем правильным первый
+            if (!foundCorrect && updatedQuestions[qIndex].choices.length > 0) {
+                updatedQuestions[qIndex].choices[0].is_correct = true;
+            }
+        }
+
         setQuestions(updatedQuestions);
     };
 

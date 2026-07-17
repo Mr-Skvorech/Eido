@@ -20,6 +20,8 @@ const HostGame = () => {
     const fetchQuiz = async () => {
       try {
         const response = await api.get(`/api/quizzes/${quizId}/get/`);
+        console.log("QUIZ:", response.data);
+        console.log("QUESTION:", response.data.questions[0]);
         setQuiz(response.data);
       } catch (error) {
         console.error('Ошибка загрузки квиза', error);
@@ -31,13 +33,32 @@ const HostGame = () => {
   // 2. Слушаем ответы игроков
   useEffect(() => {
     const handlePlayerAnswered = (data) => {
+      const check_answers = (choices, selected) => {
+        if (!selected) return false;
+        if (Array.isArray(selected)) {
+          // Множественный выбор: проверяем, что все выбранные правильные и их количество совпадает
+          const correctChoices = choices.filter(c => c.is_correct).map(c => c.id);
+          return selected.length === correctChoices.length && selected.every(id => correctChoices.includes(id));
+        } else {
+          // Один выбор: просто проверяем правильность
+          const choice = choices.find(c => c.id === selected);
+          return choice?.is_correct || false;
+        }
+      };
+      
       const { player_id, choice_id, time_taken } = data;
       
       // Находим текущий вопрос и проверяем ответ
       const currentQuestion = quiz?.questions[currentQuestionIndex];
-      const selectedChoice = currentQuestion?.choices.find(c => c.id === choice_id);
+      let selectedChoices;
+      if (choice_id.length > 0) {
+        selectedChoices = choice_id; // Если это массив (множественный выбор)
+      } else {
+        selectedChoices = currentQuestion?.choices.find(c => c.id === choice_id);
+      }
       
-      if (selectedChoice?.is_correct) {
+      console.log(selectedChoices, currentQuestion?.choices);
+      if (selectedChoices?.is_correct || check_answers(currentQuestion?.choices, selectedChoices)) {
         // Простая формула очков: чем быстрее, тем больше очков
         const points = Math.max(0, 1000 - (time_taken * 10)); 
         setPlayers(prev => ({
@@ -65,33 +86,35 @@ const HostGame = () => {
     return () => clearTimeout(timer);
   }, [isQuestionActive, timeLeft]);
 
-  // Запуск вопроса
   const startQuestion = () => {
     const question = quiz.questions[currentQuestionIndex];
     
-    // Очищаем флаги правильных ответов, чтобы игроки не читерили
+    // Очищаем флаги правильных ответов, но ОСТАВЛЯЕМ картинку и тип выбора
     const safeQuestion = {
       id: question.id,
       text: question.text,
+      image: question.image, // ДОБАВЛЕНО
+      is_multiple_choice: question.is_multiple_choice, // ДОБАВЛЕНО
       choices: question.choices.map(c => ({ id: c.id, text: c.text }))
     };
 
+    console.log(question);
     socket.emit('send_question', { room: roomId, question: safeQuestion });
-    setTimeLeft(question.time_limit || 20); // Дефолтно 20 секунд
+    setTimeLeft(question.time_limit || 20); 
     setIsQuestionActive(true);
     setIsShowingResults(false);
   };
 
-  // Время вышло (или все ответили)
   const handleTimeUp = () => {
     setIsQuestionActive(false);
     setIsShowingResults(true);
     
     const question = quiz.questions[currentQuestionIndex];
-    const correctChoice = question.choices.find(c => c.is_correct);
+    // ДОБАВЛЕНО: собираем массив всех правильных ответов (их может быть несколько)
+    const correctChoicesIds = question.choices.filter(c => c.is_correct).map(c => c.id);
 
-    socket.emit('show_results', { room: roomId, results: { correct_choice_id: correctChoice.id } });
-    handleNext(); // Переходим к следующему вопросу или концу игры
+    socket.emit('show_results', { room: roomId, results: { correct_choice_ids: correctChoicesIds } });
+    handleNext(); 
   };
 
   // Переход к следующему вопросу или концу игры
@@ -111,7 +134,9 @@ const HostGame = () => {
         await api.post(`/api/game/rooms/${roomId}/end/`, { scores: scoresPayload });
 
         // 2. Оповещаем игроков через сокеты, что игра окончена, и шлем им финальный стейт
-        socket.emit('end_quiz', { room: roomId, leaderboard: players });
+        // console.log("Final Scores:", scoresPayload);
+        const leaders = await api.get(`api/game/rooms/${roomId}/results/`);
+        socket.emit('end_quiz', { room: roomId, leaderboard: leaders.data });
 
         // 3. Уводим ведущего на экран подиума
         navigate(`/host/results/${roomId}`);

@@ -18,8 +18,8 @@ urlpatterns = [
     
     # Эти пути у тебя уже были правильными
     path('game/join/', join_game, name='join-game'),
-    path('game/rooms/<str:room_id>/end/', end_game, name='end-game'),
-    path('game/rooms/<str:room_id>/results/', get_room_results, name='room-results'),
+    path('game/rooms/<str:pin>/end/', end_game, name='end-game'),
+    path('game/rooms/<str:pin>/results/', get_room_results, name='room-results'),
     path('history/hosted/', HostedGamesHistoryListView.as_view(), name='hosted-history'),
     path('history/played/', PlayerGamesHistoryListView.as_view(), name='player-history'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -21,7 +21,7 @@ const HostResults = () => {
       } catch (error) {
         console.error("Не удалось загрузить финальные результаты", error);
       } finally {
-        await api.post(`api/game/rooms/${roomId}/end/`); // Отправляем сигнал серверу о завершении игры
+        // await api.post(`api/game/rooms/${roomId}/end/`); // Отправляем сигнал серверу о завершении игры
         setLoading(false);
       }
     };

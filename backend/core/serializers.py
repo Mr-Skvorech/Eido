@@ -8,12 +8,12 @@ class ChoiceSerializer(serializers.ModelSerializer):
         fields = ['id', 'text', 'is_correct']
 
 class QuestionSerializer(serializers.ModelSerializer):
-    # Явно указываем вложенный сериализатор для вариантов ответов
+    image = Base64ImageField(required=False, allow_null=True) # Само разберет Base64 строку в файл!
     choices = ChoiceSerializer(many=True)
 
     class Meta:
         model = Question
-        fields = ['id', 'text', 'time_limit', 'choices']
+        fields = ['id', 'text', 'time_limit', 'image', 'is_multiple_choice', 'choices']
 
 class QuizSerializer(serializers.ModelSerializer):
     # Явно указываем вложенный сериализатор для вопросов
@@ -59,14 +59,6 @@ class UserSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user
-
-class QuestionSerializer(serializers.ModelSerializer):
-    image = Base64ImageField(required=False, allow_null=True) # Само разберет Base64 строку в файл!
-    choices = ChoiceSerializer(many=True)
-
-    class Meta:
-        model = Question
-        fields = ['id', 'text', 'time_limit', 'image', 'is_multiple_choice', 'choices']
 
 # Вспомогательный сериализатор для отображения участников внутри истории хоста
 class ParticipantHistorySerializer(serializers.ModelSerializer):
