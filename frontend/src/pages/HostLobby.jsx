@@ -18,6 +18,7 @@ export default function HostLobby() {
       // (например, компонент успел размонтироваться/перемонтироваться)
       if (!activeRef.current) return;
 
+      console.log('✅ player_joined data:', data);
       if (data?.name) {
         setPlayers((prev) => {
           // Защита от дублей на случай повторного join_room в StrictMode
@@ -29,8 +30,16 @@ export default function HostLobby() {
       }
     };
 
+    const onRoomJoined = (data) => {
+      // console.log('🚪 room_joined:', data);
+    };
+
+    socket.on('new_player', onPlayerJoined);
+    socket.on('room_joined', onRoomJoined);
+
     const doJoin = () => {
       socket.emit('join_room', { pin });
+      // console.log('📤 join_room отправлен с pin:', JSON.stringify(pin));
     };
 
     if (socket.connected) {
@@ -43,6 +52,8 @@ export default function HostLobby() {
 
     return () => {
       activeRef.current = false;
+      socket.off('new_player', onPlayerJoined);
+      socket.off('room_joined', onRoomJoined);
       socket.off('connect', doJoin);
     };
   }, [pin]);
