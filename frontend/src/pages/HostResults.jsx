@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import { notifyError } from '../utils/notify';
 
 const HostResults = () => {
   const { roomId } = useParams();
@@ -20,6 +21,7 @@ const HostResults = () => {
         setLeaderboard(sortedPlayers);
       } catch (error) {
         console.error("Не удалось загрузить финальные результаты", error);
+        notifyError("Не удалось загрузить финальные результаты. Попробуйте ещё раз.");
       } finally {
         // await api.post(`api/game/rooms/${roomId}/end/`); // Отправляем сигнал серверу о завершении игры
         setLoading(false);

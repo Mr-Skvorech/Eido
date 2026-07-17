@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import socket from '../utils/socket';
+import { notifyError } from '../utils/notify';
 
 export default function PlayerJoin() {
   const [pin, setPin] = useState('');
@@ -36,6 +37,7 @@ export default function PlayerJoin() {
       const data = await res.json();
 
       if (!res.ok) {
+        notifyError(data.error || "Ошибка подключения. Попробуйте ещё раз.");
         setError(data.error || 'Ошибка подключения');
         setIsLoading(false);
         return;

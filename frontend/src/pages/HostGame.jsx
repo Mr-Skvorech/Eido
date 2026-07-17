@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import socket from '../utils/socket'; // Твой инстанс socket.io-client
 import api from '../utils/api'; // Твой настроенный axios
+import { notifyError } from '../utils/notify';
 
 const HostGame = () => {
   const { quizId, roomId } = useParams(); // ID квиза и комнаты из URL
@@ -24,6 +25,7 @@ const HostGame = () => {
         console.log("QUESTION:", response.data.questions[0]);
         setQuiz(response.data);
       } catch (error) {
+        notifyError("Ошибка загрузки квиза. Попробуйте ещё раз.");
         console.error('Ошибка загрузки квиза', error);
       }
     };
@@ -125,26 +127,27 @@ const HostGame = () => {
     } else {
         try {
         // Формируем объект с очками, где ключ - ID (токен) игрока, значение - его очки
-        const scoresPayload = {};
-        Object.keys(players).forEach(token => {
-            scoresPayload[token] = players[token].score;
-        });
+          const scoresPayload = {};
+          Object.keys(players).forEach(token => {
+              scoresPayload[token] = players[token].score;
+          });
 
-        // 1. Сохраняем результаты в БД через API
-        await api.post(`/api/game/rooms/${roomId}/end/`, { scores: scoresPayload });
+          // 1. Сохраняем результаты в БД через API
+          await api.post(`/api/game/rooms/${roomId}/end/`, { scores: scoresPayload });
 
-        // 2. Оповещаем игроков через сокеты, что игра окончена, и шлем им финальный стейт
-        // console.log("Final Scores:", scoresPayload);
-        const leaders = await api.get(`api/game/rooms/${roomId}/results/`);
-        socket.emit('end_quiz', { room: roomId, leaderboard: leaders.data });
+          // 2. Оповещаем игроков через сокеты, что игра окончена, и шлем им финальный стейт
+          console.log("Final Scores:", scoresPayload);
+          const leaders = await api.get(`api/game/rooms/${roomId}/results/`);
+          socket.emit('end_quiz', { room: roomId, scores: scoresPayload, leaderBoard: leaders.data });
 
-        // 3. Уводим ведущего на экран подиума
-        navigate(`/host/results/${roomId}`);
+          // 3. Уводим ведущего на экран подиума
+          navigate(`/host/results/${roomId}`);
         } catch (error) {
-        console.error("Ошибка при сохранении игры:", error);
-        // Даже если API упало, сокет всё равно лучше бросить, чтобы игроки не зависли
-        socket.emit('end_quiz', { room: roomId, leaderboard: players });
-        navigate(`/host/results/${roomId}`);
+          console.error("Ошибка при сохранении игры:", error);
+          notifyError("Ошибка при сохранении игры. Попробуйте ещё раз.");
+          // Даже если API упало, сокет всё равно лучше бросить, чтобы игроки не зависли
+          socket.emit('end_quiz', { room: roomId, scores: scoresPayload });
+          navigate(`/host/results/${roomId}`);
         }
     }
   };

@@ -10,6 +10,7 @@ const PlayerGame = () => {
   const [selectedChoiceIds, setSelectedChoiceIds] = useState([]);
   const [isCorrect, setIsCorrect] = useState(null);
   const [finalResults, setFinalResults] = useState(null);
+  const [leaderboard, setLeaderboard] = useState(null);
 
   const playerName = localStorage.getItem('player_name');
   const sessionToken = localStorage.getItem('session_token');
@@ -47,8 +48,9 @@ const PlayerGame = () => {
     };
 
     // Аналогично — сервер рассылает 'quiz_ended', а не 'end_quiz'
-    const onQuizEnded = (leaderboard) => {
-      setFinalResults(leaderboard);
+    const onQuizEnded = (data) => {
+      setFinalResults(data.scores);
+      setLeaderboard(data.leaderBoard);
       setStatus('ended');
     };
 
@@ -173,16 +175,21 @@ const PlayerGame = () => {
     // finalResults приходит как объект { [session_token]: { name, score } }
     const entries = finalResults ? Object.entries(finalResults) : [];
     const sortedEntries = [...entries].sort((a, b) => (b[1]?.score || 0) - (a[1]?.score || 0));
-
+    const scores = leaderboard ? Object.entries(leaderboard) : [];
+    const sortedScores = Object.values(scores).sort(
+      (a, b) => b.score - a.score
+    );
+    
     const myIndex = sortedEntries.findIndex(([id]) => id === sessionToken);
     const myRank = myIndex >= 0 ? myIndex + 1 : null;
-    const myScore = myIndex >= 0 ? Math.round(sortedEntries[myIndex][1]?.score) || 0 : 0;
+    const myScore = myIndex >= 0 ? Math.trunc(sortedEntries[myIndex][1]) || 0 : 0;
     const totalPlayers = sortedEntries.length;
 
     const medal = myRank === 1 ? '🥇' : myRank === 2 ? '🥈' : myRank === 3 ? '🥉' : null;
     console.log("Final Results:", finalResults, "My Rank:", myRank, "My Score:", myScore, "Total Players:", totalPlayers);
     console.log("Sorted Entries:", sortedEntries);
     console.log("My Index:", myIndex, "My Entry:", sortedEntries[myIndex]);
+    console.log(sortedScores);
 
     return (
       <div className="uk-container uk-margin-top uk-text-center" style={{ paddingTop: '8vh' }}>
@@ -204,18 +211,18 @@ const PlayerGame = () => {
           <p className="uk-text-lead">Твой результат сохранён.</p>
         )}
 
-        {sortedEntries.length > 0 && (
+        {sortedScores.length > 0 && (
           <div className="uk-card uk-card-default uk-card-body uk-margin-large-top uk-width-1-1 uk-width-2-3@m uk-margin-auto uk-text-left">
             <h3 className="uk-text-muted uk-text-center">Топ игроков</h3>
             <ul className="uk-list uk-list-divider">
-              {sortedEntries.slice(0, 5).map(([id, player], index) => (
+              {sortedScores.slice(0, 5).map(([key, player], index) => (
                 <li
-                  key={id}
-                  className={id === sessionToken ? 'uk-text-primary uk-text-bold' : ''}
+                  key={player?.id}
+                  className={playerName === player?.name ? 'uk-text-primary uk-text-bold' : ''}
                 >
                   <span className="uk-badge uk-margin-small-right">{index + 1}</span>
                   {player?.name}
-                  {id === sessionToken && ' (ты)'}
+                  {playerName === player?.name && ' (ты)'}
                   <span className="uk-float-right">{Math.round(player?.score || 0)}</span>
                 </li>
               ))}

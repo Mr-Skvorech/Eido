@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchMyQuizzes } from '../api/quizzes';
 import api from '../utils/api';
+import { notifyError } from '../utils/notify';
 
 export default function Dashboard() {
     const [quizzes, setQuizzes] = useState([]);
@@ -18,14 +19,6 @@ export default function Dashboard() {
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyError, setHistoryError] = useState(null);
     const [historyLoaded, setHistoryLoaded] = useState(false);
-
-    useEffect(() => {
-        // Проверяем, авторизован ли пользователь
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            navigate('/login');
-        }
-    }, [navigate]);
 
     // Загружаем квизы при монтировании компонента
     useEffect(() => {
@@ -44,7 +37,14 @@ export default function Dashboard() {
     useEffect(() => {
         api.get('/api/auth/me/')
             .then(res => setCurrentUser(res.data))
-            .catch(err => console.error('Не удалось загрузить данные аккаунта', err));
+            .catch(err => {
+                if (err.message === "Unauthorized") {
+                    // Если токен недействителен, перенаправляем на страницу логина
+                    navigate('/login');
+                } else {
+                    notifyError("Не удалось загрузить данные аккаунта. Попробуйте ещё раз.");
+                }
+            });
     }, []);
 
     // Историю проведённых игр грузим лениво — только когда открывают вкладку
@@ -78,7 +78,7 @@ export default function Dashboard() {
             navigate(`/host/lobby/${quizId}/${pin}`);
         } catch (error) {
             console.error('Ошибка запуска игры:', error);
-            alert('Не удалось запустить игру. Проверьте консоль.');
+            notifyError("Не удалось запустить игру. Попробуйте ещё раз.");
         }
     };
 

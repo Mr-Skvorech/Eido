@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginUser } from '../api/auth';
 import api from '../utils/api';
+import { notifyError } from '../utils/notify';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -20,6 +21,7 @@ export default function Login() {
             // Перенаправляем на главную/дашборд
             navigate('/');
         } catch (err) {
+            notifyError("Ошибка при входе. Проверьте данные и попробуйте снова.");
             setError(err.message);
         }
     };

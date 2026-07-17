@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { registerUser } from '../api/auth';
+import { notifyError } from '../utils/notify';
 
 export default function Register() {
     const [username, setUsername] = useState('');
@@ -17,6 +18,7 @@ export default function Register() {
             // После успешной регистрации отправляем на страницу логина
             navigate('/login');
         } catch (err) {
+            notifyError("Ошибка при регистрации. Проверьте данные и попробуйте снова.");
             setError(err.message);
         }
     };

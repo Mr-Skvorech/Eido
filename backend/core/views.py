@@ -136,7 +136,7 @@ def end_game(request, pin):
     # Обновляем очки участников в БД
     for token, score in scores_data.items():
         Participant.objects.filter(room=room, session_token=token).update(score=score)
-    
+        
     # Деактивируем комнату, чтобы по этому PIN больше никто не зашел
     room.is_active = False
     room.save()

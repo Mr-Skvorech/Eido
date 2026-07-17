@@ -87,6 +87,11 @@ function App() {
                 </PrivateRoute>
             } 
         />
+
+        {/* <Route
+          path="*"
+          element={<ErrorPage />}
+        /> */}
       </Routes>
     </Router>
   );

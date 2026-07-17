@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createQuiz } from '../api/quizzes';
+import { notifyError } from '../utils/notify';
 
 export default function CreateQuiz() {
     const navigate = useNavigate();
@@ -57,6 +58,7 @@ export default function CreateQuiz() {
             updatedQuestions[qIndex].image = base64; // сохраняем строку в стейт
             setQuestions(updatedQuestions);
         } catch (err) {
+            notifyError("Ошибка кодирования картинки. Попробуйте другой файл.");
             console.error("Ошибка кодирования картинки", err);
         }
     };
@@ -125,6 +127,7 @@ export default function CreateQuiz() {
             await createQuiz({ title, description, questions });
             navigate('/'); // Возвращаемся на главную
         } catch (err) {
+            notifyError(err.message || "Ошибка при создании квиза.");
             setError(err.message);
         }
     };

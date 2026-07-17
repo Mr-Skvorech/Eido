@@ -72,8 +72,9 @@ async def on_show_results(sid, data):
 async def on_end_quiz(sid, data):
     """Ведущий завершает игру (показан финальный подиум)."""
     room = data.get('room')
-    leaderboard = data.get('leaderboard')
-    await sio.emit('quiz_ended', leaderboard, room=room, skip_sid=sid)
+    scores = data.get('scores')  # Ожидаем словарь {session_token: score}
+    leaderBoard = data.get('leaderBoard')
+    await sio.emit('quiz_ended', {'scores': scores, 'leaderBoard': leaderBoard}, room=room, skip_sid=sid)
 
 
 # --- ЛОГИКА ИГРОКА (Player -> Server -> Host) ---
