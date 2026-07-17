@@ -1,8 +1,7 @@
 import axios from 'axios';
 
-// Создаем базовый инстанс axios
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000', // URL твоего Django-бэкенда
+  baseURL: 'http://127.0.0.1:8000',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -44,7 +43,6 @@ api.interceptors.response.use(
 
         const refreshToken = localStorage.getItem('refresh_token');
 
-        // Refresh отсутствует
         if (!refreshToken) {
             localStorage.removeItem('access_token');
             window.location.href = '/login';
@@ -53,7 +51,6 @@ api.interceptors.response.use(
         }
 
         try {
-            // Получаем новый Access
             const response = await axios.post(
                 'http://127.0.0.1:8000/api/token/refresh/',
                 {
@@ -63,18 +60,13 @@ api.interceptors.response.use(
 
             const newAccessToken = response.data.access;
 
-            // Сохраняем новый токен
             localStorage.setItem('access_token', newAccessToken);
-
-            // Обновляем дефолтный заголовок axios
             api.defaults.headers.common.Authorization =
                 `Bearer ${newAccessToken}`;
 
-            // Обновляем заголовок текущего запроса
             originalRequest.headers.Authorization =
                 `Bearer ${newAccessToken}`;
 
-            // Повторяем запрос
             return api(originalRequest);
 
         } catch (refreshError) {

@@ -12,18 +12,14 @@ const HostResults = () => {
   useEffect(() => {
     const fetchFinalResults = async () => {
       try {
-        // # Запрашиваем участников этой комнаты
-        // # (Эндпоинт получения игроков комнаты у тебя, скорее всего, уже есть для лобби, используем его)
         const response = await api.get(`api/game/rooms/${roomId}/results/`);
         
-        // # Сортируем игроков по очкам (от большего к меньшему)
         const sortedPlayers = response.data.sort((a, b) => b.score - a.score);
         setLeaderboard(sortedPlayers);
       } catch (error) {
         console.error("Не удалось загрузить финальные результаты", error);
         notifyError("Не удалось загрузить финальные результаты. Попробуйте ещё раз.");
       } finally {
-        // await api.post(`api/game/rooms/${roomId}/end/`); // Отправляем сигнал серверу о завершении игры
         setLoading(false);
       }
     };

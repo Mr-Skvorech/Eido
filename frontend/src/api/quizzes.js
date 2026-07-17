@@ -1,6 +1,5 @@
-const API_URL = 'http://localhost:8000/api'; // Убедись, что адрес совпадает с Django
+const API_URL = 'http://localhost:8000/api';
 
-// Хелпер для генерации заголовков с актуальным JWT-токеном
 const getHeaders = () => {
     const token = localStorage.getItem('access_token');
     return {
@@ -9,7 +8,6 @@ const getHeaders = () => {
     };
 };
 
-// Получить все квизы текущего пользователя
 export const fetchMyQuizzes = async () => {
     const response = await fetch(`${API_URL}/quizzes/`, {
         method: 'GET',
@@ -22,7 +20,6 @@ export const fetchMyQuizzes = async () => {
     return response.json();
 };
 
-// Создать новый квиз (вместе с вопросами и ответами)
 export const createQuiz = async (quizData) => {
     const response = await fetch(`${API_URL}/quizzes/`, {
         method: 'POST',

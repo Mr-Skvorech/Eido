@@ -4,12 +4,12 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateQuiz from './pages/CreateQuiz';
 
-// Импортируем все недостающие страницы для Ведущего (Host)
+// Host
 import HostLobby from './pages/HostLobby';
 import HostGame from './pages/HostGame';
 import HostResults from './pages/HostResults';
 
-// Импортируем страницы для Игрока (Player)
+// Player
 import PlayerJoin from './pages/PlayerJoin';
 import PlayerWaiting from './pages/PlayerWaiting';
 import PlayerGame from './pages/PlayerGame';

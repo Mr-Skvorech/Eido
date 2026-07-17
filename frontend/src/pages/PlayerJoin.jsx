@@ -27,7 +27,6 @@ export default function PlayerJoin() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      // 1. Отправляем запрос на бэкенд (регистрация в MySQL)
       const res = await fetch('http://127.0.0.1:8000/api/game/join/', {
         method: 'POST',
         headers: headers,
@@ -43,19 +42,14 @@ export default function PlayerJoin() {
         return;
       }
 
-      // 2. Сохраняем данные игрока, чтобы PlayerGame/PlayerWaiting могли их прочитать
       localStorage.setItem('session_token', data.session_token);
       localStorage.setItem('player_name', name);
       localStorage.setItem('room_pin', pin);
 
-      // 3. Входим в комнату Socket.IO (без этого игрок не в комнате физически —
-      //    события game_started/receive_question/quiz_ended до него не дойдут)
       socket.emit('join_room', { pin });
 
-      // 4. Отправляем событие, чтобы ведущий увидел имя в лобби
       socket.emit('player_joined', { pin, name });
 
-      // 5. Переводим игрока в его комнату ожидания
       navigate('/player/waiting');
 
     } catch (err) {

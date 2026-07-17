@@ -1,28 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import socket from '../utils/socket'; // Твой инстанс socket.io-client
-import api from '../utils/api'; // Твой настроенный axios
+import socket from '../utils/socket';
+import api from '../utils/api';
 import { notifyError } from '../utils/notify';
 
 const HostGame = () => {
-  const { quizId, roomId } = useParams(); // ID квиза и комнаты из URL
+  const { quizId, roomId } = useParams();
   const navigate = useNavigate();
 
-  // Игровой стейт
   const [quiz, setQuiz] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isQuestionActive, setIsQuestionActive] = useState(false);
   const [isShowingResults, setIsShowingResults] = useState(false);
-  const [players, setPlayers] = useState({}); // { 'player_id': { name: 'Ivan', score: 0 } }
+  const [players, setPlayers] = useState({});
 
-  // 1. Загрузка квиза при монтировании
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
         const response = await api.get(`/api/quizzes/${quizId}/get/`);
-        console.log("QUIZ:", response.data);
-        console.log("QUESTION:", response.data.questions[0]);
         setQuiz(response.data);
       } catch (error) {
         notifyError("Ошибка загрузки квиза. Попробуйте ещё раз.");
@@ -32,17 +28,14 @@ const HostGame = () => {
     fetchQuiz();
   }, [quizId]);
 
-  // 2. Слушаем ответы игроков
   useEffect(() => {
     const handlePlayerAnswered = (data) => {
       const check_answers = (choices, selected) => {
         if (!selected) return false;
         if (Array.isArray(selected)) {
-          // Множественный выбор: проверяем, что все выбранные правильные и их количество совпадает
           const correctChoices = choices.filter(c => c.is_correct).map(c => c.id);
           return selected.length === correctChoices.length && selected.every(id => correctChoices.includes(id));
         } else {
-          // Один выбор: просто проверяем правильность
           const choice = choices.find(c => c.id === selected);
           return choice?.is_correct || false;
         }
@@ -50,7 +43,6 @@ const HostGame = () => {
       
       const { player_id, choice_id, time_taken } = data;
       
-      // Находим текущий вопрос и проверяем ответ
       const currentQuestion = quiz?.questions[currentQuestionIndex];
       let selectedChoices;
       if (choice_id.length > 0) {
@@ -59,9 +51,7 @@ const HostGame = () => {
         selectedChoices = currentQuestion?.choices.find(c => c.id === choice_id);
       }
       
-      console.log(selectedChoices, currentQuestion?.choices);
       if (selectedChoices?.is_correct || check_answers(currentQuestion?.choices, selectedChoices)) {
-        // Простая формула очков: чем быстрее, тем больше очков
         const points = Math.max(0, 1000 - (time_taken * 10)); 
         setPlayers(prev => ({
           ...prev,
@@ -77,7 +67,6 @@ const HostGame = () => {
     return () => socket.off('player_answered', handlePlayerAnswered);
   }, [quiz, currentQuestionIndex]);
 
-  // 3. Управление таймером
   useEffect(() => {
     let timer;
     if (isQuestionActive && timeLeft > 0) {
@@ -90,17 +79,15 @@ const HostGame = () => {
 
   const startQuestion = () => {
     const question = quiz.questions[currentQuestionIndex];
-    
-    // Очищаем флаги правильных ответов, но ОСТАВЛЯЕМ картинку и тип выбора
+  
     const safeQuestion = {
       id: question.id,
       text: question.text,
-      image: question.image, // ДОБАВЛЕНО
-      is_multiple_choice: question.is_multiple_choice, // ДОБАВЛЕНО
+      image: question.image,
+      is_multiple_choice: question.is_multiple_choice,
       choices: question.choices.map(c => ({ id: c.id, text: c.text }))
     };
 
-    console.log(question);
     socket.emit('send_question', { room: roomId, question: safeQuestion });
     setTimeLeft(question.time_limit || 20); 
     setIsQuestionActive(true);
@@ -112,35 +99,28 @@ const HostGame = () => {
     setIsShowingResults(true);
     
     const question = quiz.questions[currentQuestionIndex];
-    // ДОБАВЛЕНО: собираем массив всех правильных ответов (их может быть несколько)
     const correctChoicesIds = question.choices.filter(c => c.is_correct).map(c => c.id);
 
     socket.emit('show_results', { room: roomId, results: { correct_choice_ids: correctChoicesIds } });
     handleNext(); 
   };
 
-  // Переход к следующему вопросу или концу игры
   const handleNext = async () => {
     if (currentQuestionIndex < quiz.questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
         setIsShowingResults(false);
     } else {
         try {
-        // Формируем объект с очками, где ключ - ID (токен) игрока, значение - его очки
           const scoresPayload = {};
           Object.keys(players).forEach(token => {
               scoresPayload[token] = players[token].score;
           });
 
-          // 1. Сохраняем результаты в БД через API
           await api.post(`/api/game/rooms/${roomId}/end/`, { scores: scoresPayload });
 
-          // 2. Оповещаем игроков через сокеты, что игра окончена, и шлем им финальный стейт
-          console.log("Final Scores:", scoresPayload);
           const leaders = await api.get(`api/game/rooms/${roomId}/results/`);
           socket.emit('end_quiz', { room: roomId, scores: scoresPayload, leaderBoard: leaders.data });
 
-          // 3. Уводим ведущего на экран подиума
           navigate(`/host/results/${roomId}`);
         } catch (error) {
           console.error("Ошибка при сохранении игры:", error);
@@ -196,8 +176,6 @@ const HostGame = () => {
             </button>
         </div>
         )}
-
-        {/* ... остальной код рендера результатов вопроса ... */}
     </div>
     );
 };

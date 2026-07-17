@@ -6,8 +6,6 @@ export default function PlayerWaiting() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Сервер шлёт { pin: '...' } — используем именно это значение,
-    // а не полагаемся на то, что было в localStorage при заходе на страницу
     const onGameStarted = (data) => {
       const pin = data?.pin || localStorage.getItem('room_pin');
       navigate(`/player/game/${pin}`);

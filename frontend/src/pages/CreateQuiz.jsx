@@ -18,7 +18,6 @@ export default function CreateQuiz() {
         });
     };
 
-    // Структура по умолчанию: 1 вопрос, 4 варианта (первый помечен как правильный)
     const [questions, setQuestions] = useState([
         { 
             text: '', 
@@ -34,7 +33,6 @@ export default function CreateQuiz() {
         }
     ]);
 
-    // Добавление нового пустого вопроса в форму (Исправлено: добавлены дефолтные поля)
     const handleAddQuestion = () => {
         setQuestions([...questions, {
             text: '',
@@ -55,7 +53,7 @@ export default function CreateQuiz() {
         try {
             const base64 = await convertToBase64(file);
             const updatedQuestions = [...questions];
-            updatedQuestions[qIndex].image = base64; // сохраняем строку в стейт
+            updatedQuestions[qIndex].image = base64;
             setQuestions(updatedQuestions);
         } catch (err) {
             notifyError("Ошибка кодирования картинки. Попробуйте другой файл.");
@@ -63,8 +61,6 @@ export default function CreateQuiz() {
         }
     };
 
-    // Изменение текста вопроса или лимита времени
-    // Изменение текста вопроса, лимита времени или типа выбора
     const handleQuestionChange = (qIndex, field, value) => {
         const updatedQuestions = [...questions];
         updatedQuestions[qIndex][field] = value;
@@ -80,7 +76,7 @@ export default function CreateQuiz() {
                 }
             });
             
-            // Защита от дурака: если ни одного правильного не осталось, делаем правильным первый
+            // Если ни одного правильного не осталось, делаем правильным первый
             if (!foundCorrect && updatedQuestions[qIndex].choices.length > 0) {
                 updatedQuestions[qIndex].choices[0].is_correct = true;
             }
@@ -89,23 +85,19 @@ export default function CreateQuiz() {
         setQuestions(updatedQuestions);
     };
 
-    // Изменение текста конкретного варианта ответа
     const handleChoiceChange = (qIndex, cIndex, value) => {
         const updatedQuestions = [...questions];
         updatedQuestions[qIndex].choices[cIndex].text = value;
         setQuestions(updatedQuestions);
     };
 
-    // Переключение правильного ответа
     const handleCorrectChoiceChange = (qIndex, cIndex) => {
         const updatedQuestions = [...questions];
         const question = updatedQuestions[qIndex];
 
         if (question.is_multiple_choice) {
-            // Для мультивыбора - инвертируем значение (чекбоксы)
             question.choices[cIndex].is_correct = !question.choices[cIndex].is_correct;
         } else {
-            // Для одиночного выбора - зануляем остальные (радио)
             question.choices.forEach((choice, index) => {
                 choice.is_correct = index === cIndex;
             });
@@ -113,7 +105,6 @@ export default function CreateQuiz() {
         setQuestions(updatedQuestions);
     };
 
-    // Удаление вопроса из конструктора
     const handleRemoveQuestion = (index) => {
         if (questions.length === 1) return; // Нельзя удалить единственный вопрос
         setQuestions(questions.filter((_, i) => i !== index));
@@ -123,9 +114,8 @@ export default function CreateQuiz() {
         e.preventDefault();
         setError(null);
         try {
-            // Отправляем собранный большой объект на бэкенд
             await createQuiz({ title, description, questions });
-            navigate('/'); // Возвращаемся на главную
+            navigate('/');
         } catch (err) {
             notifyError(err.message || "Ошибка при создании квиза.");
             setError(err.message);

@@ -15,10 +15,10 @@ export default function Login() {
         setError(null);
         try {
             const data = await loginUser(email, password);
-            // Сохраняем токены в localStorage
+
             localStorage.setItem('access_token', data.access);
             localStorage.setItem('refresh_token', data.refresh);
-            // Перенаправляем на главную/дашборд
+
             navigate('/');
         } catch (err) {
             notifyError("Ошибка при входе. Проверьте данные и попробуйте снова.");

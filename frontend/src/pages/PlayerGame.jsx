@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import socket from '../utils/socket';
 
 const PlayerGame = () => {
-  console.log("PlayerGame mounted");
-  
   const [status, setStatus] = useState('waiting'); // waiting, question, answered, results, ended
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [startTime, setStartTime] = useState(null);
@@ -15,7 +13,6 @@ const PlayerGame = () => {
   const playerName = localStorage.getItem('player_name');
   const sessionToken = localStorage.getItem('session_token');
   const roomId = localStorage.getItem('room_pin');
-  console.log("PlayerGame sessionToken:", sessionToken, "roomId:", roomId, "playerName:", playerName);
 
   const selectedIdsRef = useRef([]);
   useEffect(() => {
@@ -24,21 +21,17 @@ const PlayerGame = () => {
 
   useEffect(() => {
     const onReceiveQuestion = (question) => {
-        console.log("PLAYER RECEIVED:", question);
         setCurrentQuestion(question);
         setStartTime(Date.now());
-        setSelectedChoiceIds([]); // Сброс
+        setSelectedChoiceIds([]);
         setIsCorrect(null);
         setStatus('question');
     };
 
-    // Сервер рассылает именно 'results_revealed' (не 'show_results' —
-    // это имя хост шлёт СЕРВЕРУ, а сервер рассылает игрокам под другим именем)
     const onResultsRevealed = (data) => {
         const correctIds = data.correct_choice_ids || (data.correct_choice_id ? [data.correct_choice_id] : []);
-        const myAnswers = selectedIdsRef.current; // Берем наши ответы из ref
+        const myAnswers = selectedIdsRef.current;
 
-        // Проверяем совпадение массивов (выбрали хотя бы один, длины равны, и все наши есть в правильных)
         const isWin = myAnswers.length > 0 &&
                       myAnswers.length === correctIds.length && 
                       myAnswers.every(id => correctIds.includes(id));
@@ -47,7 +40,6 @@ const PlayerGame = () => {
         setStatus('results');
     };
 
-    // Аналогично — сервер рассылает 'quiz_ended', а не 'end_quiz'
     const onQuizEnded = (data) => {
       setFinalResults(data.scores);
       setLeaderboard(data.leaderBoard);
@@ -69,7 +61,6 @@ const PlayerGame = () => {
     if (status !== 'question') return;
 
     if (!currentQuestion.is_multiple_choice) {
-        // Одиночный выбор: фиксируем ответ и сразу шлем на сервер
         const timeTaken = (Date.now() - startTime) / 1000;
         setSelectedChoiceIds([choiceId]);
         setStatus('answered');
@@ -81,7 +72,6 @@ const PlayerGame = () => {
             time_taken: timeTaken
         });
     } else {
-        // Множественный выбор: только выделяем/снимаем выделение
         setSelectedChoiceIds(prev => 
             prev.includes(choiceId) ? prev.filter(id => id !== choiceId) : [...prev, choiceId]
         );
@@ -91,7 +81,6 @@ const PlayerGame = () => {
   const submitMultipleAnswers = () => {
     const timeTaken = (Date.now() - startTime) / 1000;
     setStatus('answered');
-    console.log("Submitting multiple answers:", selectedChoiceIds);
     socket.emit('submit_answer', {
         room: roomId, player_id: sessionToken, choice_id: selectedChoiceIds, time_taken: timeTaken
     });
@@ -114,7 +103,6 @@ const PlayerGame = () => {
       <div className="uk-container uk-margin-top uk-text-center">
         <h3>{currentQuestion?.text}</h3>
         
-        {/* ДОБАВЛЕНО: Рендер картинки, если она есть */}
         {currentQuestion?.image && (
             <div className="uk-margin-bottom">
                 <img src={currentQuestion.image} alt="Вопрос" style={{maxHeight: '300px', borderRadius: '8px'}} />
@@ -140,7 +128,6 @@ const PlayerGame = () => {
           })}
         </div>
 
-        {/* ДОБАВЛЕНО: Кнопка отправки для множественного выбора */}
         {currentQuestion?.is_multiple_choice && status === 'question' && (
             <button 
                 className="uk-button uk-button-secondary uk-button-large uk-margin-top"
@@ -172,7 +159,6 @@ const PlayerGame = () => {
   }
 
   if (status === 'ended') {
-    // finalResults приходит как объект { [session_token]: { name, score } }
     const entries = finalResults ? Object.entries(finalResults) : [];
     const sortedEntries = [...entries].sort((a, b) => (b[1]?.score || 0) - (a[1]?.score || 0));
     const scores = leaderboard ? Object.entries(leaderboard) : [];
@@ -186,10 +172,6 @@ const PlayerGame = () => {
     const totalPlayers = sortedEntries.length;
 
     const medal = myRank === 1 ? '🥇' : myRank === 2 ? '🥈' : myRank === 3 ? '🥉' : null;
-    console.log("Final Results:", finalResults, "My Rank:", myRank, "My Score:", myScore, "Total Players:", totalPlayers);
-    console.log("Sorted Entries:", sortedEntries);
-    console.log("My Index:", myIndex, "My Entry:", sortedEntries[myIndex]);
-    console.log(sortedScores);
 
     return (
       <div className="uk-container uk-margin-top uk-text-center" style={{ paddingTop: '8vh' }}>

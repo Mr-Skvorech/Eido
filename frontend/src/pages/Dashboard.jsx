@@ -10,17 +10,14 @@ export default function Dashboard() {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    // Данные текущего аккаунта — показываем в шапке
     const [currentUser, setCurrentUser] = useState(null);
 
-    // Вкладки: 'quizzes' — мои квизы, 'history' — история проведённых игр
     const [activeTab, setActiveTab] = useState('quizzes');
     const [hostedHistory, setHostedHistory] = useState([]);
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyError, setHistoryError] = useState(null);
     const [historyLoaded, setHistoryLoaded] = useState(false);
 
-    // Загружаем квизы при монтировании компонента
     useEffect(() => {
         fetchMyQuizzes()
             .then(data => {
@@ -33,13 +30,11 @@ export default function Dashboard() {
             });
     }, []);
 
-    // Загружаем данные текущего аккаунта для шапки
     useEffect(() => {
         api.get('/api/auth/me/')
             .then(res => setCurrentUser(res.data))
             .catch(err => {
                 if (err.message === "Unauthorized") {
-                    // Если токен недействителен, перенаправляем на страницу логина
                     navigate('/login');
                 } else {
                     notifyError("Не удалось загрузить данные аккаунта. Попробуйте ещё раз.");
@@ -47,7 +42,6 @@ export default function Dashboard() {
             });
     }, []);
 
-    // Историю проведённых игр грузим лениво — только когда открывают вкладку
     useEffect(() => {
         if (activeTab !== 'history' || historyLoaded) return;
 
