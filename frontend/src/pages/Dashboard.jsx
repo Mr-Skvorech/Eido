@@ -34,11 +34,10 @@ export default function Dashboard() {
         api.get('/api/auth/me/')
             .then(res => setCurrentUser(res.data))
             .catch(err => {
-                if (err.message === "Unauthorized") {
-                    console.log(err);
+                if (err.response?.status === 401) {
                     navigate('/login');
                 } else {
-                    notifyError("Не удалось загрузить данные аккаунта. Попробуйте ещё раз.");
+                    notifyError("Не удалось загрузить данные аккаунта.");
                 }
             });
     }, []);
