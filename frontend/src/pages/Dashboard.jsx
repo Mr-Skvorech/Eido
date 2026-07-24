@@ -17,29 +17,30 @@ export default function Dashboard() {
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyError, setHistoryError] = useState(null);
     const [historyLoaded, setHistoryLoaded] = useState(false);
-
+    
     useEffect(() => {
-        fetchMyQuizzes()
-            .then(data => {
-                setQuizzes(data);
-                setLoading(false);
-            })
-            .catch(err => {
-                setError(err.message);
-                setLoading(false);
+        const loadData = async () => {
+            await api.get("/api/auth/me/")
+                .then(res => setCurrentUser(res.data))
+                .catch(err => {
+                    if (err.response?.status === 401) {
+                        navigate('/login');
+                    } else {
+                        notifyError("Не удалось загрузить данные аккаунта.");
+                    }
             });
-    }, []);
+            await fetchMyQuizzes()
+                .then(data => {
+                    setQuizzes(data);
+                    setLoading(false);
+                })
+                .catch(err => {
+                    setError(err.message);
+                    setLoading(false);
+            });
+        };
 
-    useEffect(() => {
-        api.get('/api/auth/me/')
-            .then(res => setCurrentUser(res.data))
-            .catch(err => {
-                if (err.response?.status === 401) {
-                    navigate('/login');
-                } else {
-                    notifyError("Не удалось загрузить данные аккаунта.");
-                }
-            });
+        loadData();
     }, []);
 
     useEffect(() => {

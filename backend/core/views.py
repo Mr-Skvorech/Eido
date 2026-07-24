@@ -45,6 +45,16 @@ def get_quiz(request, quiz_id):
     serializer = QuizSerializer(quiz)
     return Response(serializer.data)
 
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_quiz(request, quiz_id):
+    """Полностью обновляет квиз (название, описание, вопросы, варианты ответов)."""
+    quiz = get_object_or_404(Quiz, id=quiz_id, creator=request.user)
+    serializer = QuizSerializer(quiz, data=request.data, context={'request': request})
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def start_game_room(request, quiz_id):
@@ -72,6 +82,37 @@ def start_game_room(request, quiz_id):
         'pin': room.pin,
         'room_id': room.id
     }, status=status.HTTP_201_CREATED)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def rejoin_game(request):
+    """
+    Переподключение игрока по уже существующему session_token (из localStorage),
+    без создания нового участника — чтобы не терять имя и очки при разрыве связи.
+    """
+    pin = request.data.get('pin')
+    session_token = request.data.get('session_token')
+
+    if not pin or not session_token:
+        return Response({'error': 'PIN и session_token обязательны.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        participant = Participant.objects.select_related('room').get(
+            session_token=session_token, room__pin=pin
+        )
+    except (Participant.DoesNotExist, ValueError):
+        return Response({'error': 'Сессия не найдена. Войдите заново.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not participant.room.is_active:
+        return Response({'error': 'Игра уже завершена.'}, status=status.HTTP_410_GONE)
+
+    return Response({
+        'session_token': str(participant.session_token),
+        'name': participant.name,
+        'score': participant.score,
+        'is_started': participant.room.is_started,
+    }, status=status.HTTP_200_OK)
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny]) # Игрокам не нужен JWT-токен
@@ -116,7 +157,7 @@ def get_room_results(request, pin):
     room = get_object_or_404(GameRoom, pin=pin)
     participants = Participant.objects.filter(room=room).order_by('-score')
     data = [
-        {'id': p.id, 'name': p.name, 'score': p.score}
+        {'id': p.id, 'name': p.name, 'score': p.score, 'session_token': str(p.session_token)}
         for p in participants
     ]
     return Response(data, status=status.HTTP_200_OK)

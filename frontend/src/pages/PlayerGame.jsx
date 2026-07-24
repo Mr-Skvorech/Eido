@@ -19,6 +19,18 @@ const PlayerGame = () => {
     selectedIdsRef.current = selectedChoiceIds;
   }, [selectedChoiceIds]);
 
+  // При любом (пере)подключении сокета — заново входим в комнату.
+  // Без этого короткий обрыв связи молча выкидывает игрока из комнаты
+  // Socket.IO (новый sid не состоит в room=pin), и он перестаёт получать события.
+  useEffect(() => {
+    const rejoinRoom = () => {
+      if (roomId) socket.emit('join_room', { pin: roomId });
+    };
+    if (socket.connected) rejoinRoom();
+    socket.on('connect', rejoinRoom);
+    return () => socket.off('connect', rejoinRoom);
+  }, [roomId]);
+
   useEffect(() => {
     const onReceiveQuestion = (question) => {
         setCurrentQuestion(question);
@@ -160,17 +172,17 @@ const PlayerGame = () => {
   }
 
   if (status === 'ended') {
-    const entries = finalResults ? Object.entries(finalResults) : [];
-    const sortedEntries = [...entries].sort((a, b) => (b[1]?.score || 0) - (a[1]?.score || 0));
-    const scores = leaderboard ? Object.entries(leaderboard) : [];
-    const sortedScores = Object.values(scores).sort(
-      (a, b) => b.score - a.score
-    );
-    
-    const myIndex = sortedEntries.findIndex(([id]) => id === sessionToken);
+    // leaderboard приходит с бэкенда (GET .../results/) и содержит ВСЕХ участников
+    // комнаты, включая тех, кто не ответил правильно ни разу (score: 0) —
+    // именно поэтому ранг нужно считать по нему, а не по частичному finalResults
+    // (тот содержит только тех, кто хоть раз ответил верно).
+    const fullLeaderboard = Array.isArray(leaderboard) ? leaderboard : [];
+    const sortedScores = [...fullLeaderboard].sort((a, b) => (b.score || 0) - (a.score || 0));
+
+    const myIndex = sortedScores.findIndex((p) => p.session_token === sessionToken);
     const myRank = myIndex >= 0 ? myIndex + 1 : null;
-    const myScore = myIndex >= 0 ? Math.trunc(sortedEntries[myIndex][1]) || 0 : 0;
-    const totalPlayers = sortedEntries.length;
+    const myScore = myIndex >= 0 ? Math.round(sortedScores[myIndex].score || 0) : 0;
+    const totalPlayers = sortedScores.length;
 
     const medal = myRank === 1 ? '🥇' : myRank === 2 ? '🥈' : myRank === 3 ? '🥉' : null;
 
@@ -198,15 +210,15 @@ const PlayerGame = () => {
           <div className="uk-card uk-card-default uk-card-body uk-margin-large-top uk-width-1-1 uk-width-2-3@m uk-margin-auto uk-text-left">
             <h3 className="uk-text-muted uk-text-center">Топ игроков</h3>
             <ul className="uk-list uk-list-divider">
-              {sortedScores.slice(0, 5).map(([key, player], index) => (
+              {sortedScores.slice(0, 5).map((player, index) => (
                 <li
-                  key={player?.id}
-                  className={playerName === player?.name ? 'uk-text-primary uk-text-bold' : ''}
+                  key={player.id ?? player.session_token}
+                  className={player.session_token === sessionToken ? 'uk-text-primary uk-text-bold' : ''}
                 >
                   <span className="uk-badge uk-margin-small-right">{index + 1}</span>
-                  {player?.name}
-                  {playerName === player?.name && ' (ты)'}
-                  <span className="uk-float-right">{Math.round(player?.score || 0)}</span>
+                  {player.name}
+                  {player.session_token === sessionToken && ' (ты)'}
+                  <span className="uk-float-right">{Math.round(player.score || 0)}</span>
                 </li>
               ))}
             </ul>
@@ -215,7 +227,7 @@ const PlayerGame = () => {
 
         <button
           className="uk-button uk-button-primary uk-margin-large-top"
-          onClick={() => window.location.href = '/player/join'}
+          onClick={() => window.location.href = '/'}
         >
           На главную
         </button>

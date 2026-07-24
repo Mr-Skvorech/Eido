@@ -118,7 +118,7 @@ const HostGame = () => {
 
           await api.post(`/api/game/rooms/${roomId}/end/`, { scores: scoresPayload });
 
-          const leaders = await api.get(`api/game/rooms/${roomId}/results/`);
+          const leaders = await api.get(`/api/game/rooms/${roomId}/results/`);
           socket.emit('end_quiz', { room: roomId, scores: scoresPayload, leaderBoard: leaders.data });
 
           navigate(`/host/results/${roomId}`);

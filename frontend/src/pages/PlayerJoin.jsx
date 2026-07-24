@@ -1,19 +1,28 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import socket from '../utils/socket';
-import { notifyError } from '../utils/notify';
 
 export default function PlayerJoin() {
   const [pin, setPin] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const navigate = useNavigate();
 
-  const returnBack = async () => {
-    navigate('/');
-  }
+  const enterRoom = (finalPin, sessionToken, finalName, isStarted) => {
+    localStorage.setItem('session_token', sessionToken);
+    localStorage.setItem('player_name', finalName);
+    localStorage.setItem('room_pin', finalPin);
+
+    // Входим в комнату Socket.IO и сообщаем о себе (с session_token —
+    // без него сервер не сможет отследить это подключение при disconnect)
+    socket.emit('join_room', { pin: finalPin });
+    socket.emit('player_joined', { pin: finalPin, name: finalName, session_token: sessionToken });
+
+    // Если игра уже идёт (переподключение мидгейм) — сразу в игру, а не в лобби ожидания
+    navigate(isStarted ? `/player/game/${finalPin}` : '/player/waiting');
+  };
 
   const handleJoin = async (e) => {
     e.preventDefault();
@@ -21,7 +30,29 @@ export default function PlayerJoin() {
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem('access_token'); 
+      // Если в localStorage уже есть сессия ИМЕННО для этого PIN — пробуем
+      // переподключиться под старым session_token, не создавая нового участника
+      // (иначе игрок теряет своё имя/очки при повторном входе после разрыва связи)
+      const savedPin = localStorage.getItem('room_pin');
+      const savedToken = localStorage.getItem('session_token');
+
+      if (savedPin === pin && savedToken) {
+        const rejoinRes = await fetch('http://127.0.0.1:8000/api/game/rejoin/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin, session_token: savedToken })
+        });
+
+        if (rejoinRes.ok) {
+          const rejoinData = await rejoinRes.json();
+          enterRoom(pin, rejoinData.session_token, rejoinData.name, rejoinData.is_started);
+          return;
+        }
+        // Если реконнект не удался (сессия истекла/игра завершена) — просто идём
+        // обычным путём ниже и заходим как новый участник
+      }
+
+      const token = localStorage.getItem('access_token');
       const headers = { 'Content-Type': 'application/json' };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -32,25 +63,16 @@ export default function PlayerJoin() {
         headers: headers,
         body: JSON.stringify({ pin, name })
       });
-      
+
       const data = await res.json();
 
       if (!res.ok) {
-        notifyError(data.error || "Ошибка подключения. Попробуйте ещё раз.");
         setError(data.error || 'Ошибка подключения');
         setIsLoading(false);
         return;
       }
 
-      localStorage.setItem('session_token', data.session_token);
-      localStorage.setItem('player_name', name);
-      localStorage.setItem('room_pin', pin);
-
-      socket.emit('join_room', { pin });
-
-      socket.emit('player_joined', { pin, name, session_token: data.session_token });
-
-      navigate('/player/waiting');
+      enterRoom(pin, data.session_token, name, false);
 
     } catch (err) {
       setError('Ошибка сети. Проверьте подключение к серверу.');
@@ -62,7 +84,7 @@ export default function PlayerJoin() {
     <div className="uk-flex uk-flex-center uk-flex-middle" style={{ height: '100vh', backgroundColor: '#f8f8f8' }}>
       <div className="uk-card uk-card-default uk-card-body uk-width-1-1 uk-width-1-3@m uk-box-shadow-large">
         <h2 className="uk-card-title uk-text-center uk-text-bold">Eido_quiz</h2>
-        
+
         {error && (
           <div className="uk-alert-danger" data-uk-alert>
             <p>{error}</p>
@@ -73,10 +95,10 @@ export default function PlayerJoin() {
           <div className="uk-margin">
             <div className="uk-inline uk-width-1-1">
               <span className="uk-form-icon" data-uk-icon="icon: hashtag"></span>
-              <input 
-                className="uk-input uk-form-large uk-text-center" 
-                type="text" 
-                placeholder="PIN-код" 
+              <input
+                className="uk-input uk-form-large uk-text-center"
+                type="text"
+                placeholder="PIN-код"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 maxLength={6}
@@ -88,10 +110,10 @@ export default function PlayerJoin() {
           <div className="uk-margin">
             <div className="uk-inline uk-width-1-1">
               <span className="uk-form-icon" data-uk-icon="icon: user"></span>
-              <input 
-                className="uk-input uk-form-large uk-text-center" 
-                type="text" 
-                placeholder="Ваше имя" 
+              <input
+                className="uk-input uk-form-large uk-text-center"
+                type="text"
+                placeholder="Ваше имя"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={20}
@@ -101,21 +123,21 @@ export default function PlayerJoin() {
           </div>
 
           <div className="uk-margin">
-            <button 
-              type="submit" 
-              className="uk-button uk-button-primary uk-button-large uk-width-1-1 uk-margin-small"
+            <button
+              type="submit"
+              className="uk-button uk-button-primary uk-button-large uk-width-1-1"
               disabled={isLoading}
             >
               {isLoading ? <div data-uk-spinner="ratio: 0.8"></div> : 'Войти'}
             </button>
+            <button
+              className="uk-button uk-button-primary uk-margin-large-top"
+              onClick={() => window.location.href = '/'}
+            >
+              На главную
+            </button>
           </div>
         </form>
-        <button 
-          className="uk-button uk-button-primary uk-button-large uk-width-1-1 uk-margin-small"
-          onClick={returnBack}
-        >
-          {'На главную'}
-        </button>
       </div>
     </div>
   );

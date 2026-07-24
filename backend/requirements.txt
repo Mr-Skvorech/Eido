@@ -5,10 +5,11 @@ Django==6.0.7
 djangorestframework==3.15.2
 djangorestframework-simplejwt==5.4.0
 django-cors-headers==4.7.0
-drf-extra-fields   # для Base64ImageField
+drf-extra-fields==3.7.0   # для Base64ImageField
 
 # Database
 pymysql==1.1.2
+cryptography>=42.0.0
 
 # WebSockets & ASGI
 python-socketio==5.12.1
@@ -19,6 +20,3 @@ python-dotenv==1.1.0
 
 # Image processing
 Pillow==11.2.1
-
-# Optional but often used with Django
-django-cors-headers==4.7.0   # уже есть выше

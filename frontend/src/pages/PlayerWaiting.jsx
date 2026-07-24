@@ -13,8 +13,18 @@ export default function PlayerWaiting() {
 
     socket.on('game_started', onGameStarted);
 
+    // Восстанавливаем членство в комнате при переподключении сокета
+    // (иначе после кратковременного обрыва связи игрок не получит game_started)
+    const roomPin = localStorage.getItem('room_pin');
+    const rejoinRoom = () => {
+      if (roomPin) socket.emit('join_room', { pin: roomPin });
+    };
+    if (socket.connected) rejoinRoom();
+    socket.on('connect', rejoinRoom);
+
     return () => {
       socket.off('game_started', onGameStarted);
+      socket.off('connect', rejoinRoom);
     };
   }, [navigate]);
 

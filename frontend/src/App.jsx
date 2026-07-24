@@ -3,6 +3,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateQuiz from './pages/CreateQuiz';
+import EditQuiz from './pages/EditQuiz';
 import ErrorPage from './pages/ErrorPage';
 
 // Host
@@ -48,7 +49,17 @@ function App() {
                 </PrivateRoute>
             } 
         />
-
+ 
+        {/* Редактирование существующего квиза (баг: раньше роута не было вообще) */}
+        <Route
+            path="/quiz/:id"
+            element={
+                <PrivateRoute>
+                    <EditQuiz />
+                </PrivateRoute>
+            }
+        />
+ 
         {/* История игрока — доступна только залогиненным (поток анонимного входа по PIN не трогаем) */}
         <Route
             path="/history/played"
@@ -68,7 +79,7 @@ function App() {
                 </PrivateRoute>
             } 
         />
-
+ 
         {/* Экран игры ведущего: принимает ID квиза и ID комнаты (PIN) */}
         <Route 
             path="/host/game/:quizId/:roomId" 
@@ -78,7 +89,7 @@ function App() {
                 </PrivateRoute>
             } 
         />
-
+ 
         {/* Результаты игры (Подиум) */}
         <Route 
             path="/host/results/:roomId" 
