@@ -1,0 +1,99 @@
+.leaderboard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.leaderboard__empty {
+  color: var(--q-muted);
+  text-align: center;
+  padding: 24px 0;
+}
+
+.leaderboard__row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--q-surface);
+  border: 1px solid var(--q-border);
+  border-radius: var(--q-radius);
+  box-shadow: var(--q-shadow);
+  transition: transform 0.15s ease;
+}
+
+.leaderboard__row.is-top-1 {
+  background: linear-gradient(90deg, #fff8e6, var(--q-surface) 60%);
+  border-color: #f2d68a;
+}
+.leaderboard__row.is-top-2 {
+  border-color: #d7dbe2;
+}
+.leaderboard__row.is-top-3 {
+  border-color: #e6cbb0;
+}
+
+.leaderboard__row.is-me {
+  border-color: var(--q-primary);
+  box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.18), var(--q-shadow);
+}
+
+.leaderboard__rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--q-font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--q-muted);
+}
+
+.leaderboard__medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.95rem;
+}
+.is-top-1 .leaderboard__medal { background: #f2b705; }
+.is-top-2 .leaderboard__medal { background: #a7adb8; }
+.is-top-3 .leaderboard__medal { background: #cd8c52; }
+
+.leaderboard__name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--q-font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--q-ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaderboard__you {
+  flex: 0 0 auto;
+  font-family: var(--q-font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--q-primary);
+  background: rgba(47, 111, 237, 0.12);
+  padding: 2px 8px;
+  border-radius: var(--q-radius-pill);
+}
+
+.leaderboard__score {
+  font-family: var(--q-font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--q-primary);
+}

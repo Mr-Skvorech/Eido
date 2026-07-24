@@ -1,0 +1,58 @@
+/*
+  quiz-theme.scss
+  --------------------------------------------------------------------------
+  Общие дизайн-токены для всех quiz-компонентов.
+  Импортируй ОДИН раз в корне приложения (например, в index.jsx / App.jsx):
+
+      import "./components/quiz/quiz-theme.scss";
+
+  Все компоненты используют CSS-переменные отсюда, поэтому тему легко
+  переопределить: просто поменяй значения ниже или переопредели --q-* у себя.
+  --------------------------------------------------------------------------
+*/
+
+:root {
+  /* Шрифты. В своём проекте подключи Space Grotesk + Inter (или замени на свои). */
+  --q-font-display: var(--font-space-grotesk), "Space Grotesk", system-ui, sans-serif;
+  --q-font-body: var(--font-inter), "Inter", system-ui, sans-serif;
+
+  /* Поверхности и текст */
+  --q-bg: #f4f5f8;
+  --q-surface: #ffffff;
+  --q-surface-2: #f0f2f6;
+  --q-ink: #14161c;
+  --q-muted: #6b7280;
+  --q-border: #e5e8ee;
+
+  /* Бренд */
+  --q-primary: #2f6fed;
+  --q-primary-ink: #ffffff;
+  --q-accent: #f4b942;
+  --q-accent-ink: #14161c;
+
+  /* Статусы */
+  --q-success: #1f9d57;
+  --q-success-soft: #e3f7ec;
+  --q-danger: #e0453f;
+  --q-danger-soft: #fdeceb;
+
+  /* Классические 4 цвета плиток ответов (функциональное исключение) */
+  --q-ans-0: #e35d4f; /* треугольник */
+  --q-ans-1: #2f6fed; /* ромб */
+  --q-ans-2: #f4b942; /* круг */
+  --q-ans-3: #1f9d57; /* квадрат */
+
+  /* Формы */
+  --q-radius: 16px;
+  --q-radius-sm: 10px;
+  --q-radius-pill: 999px;
+  --q-shadow: 0 1px 2px rgba(20, 22, 28, 0.06), 0 8px 24px rgba(20, 22, 28, 0.06);
+  --q-shadow-lg: 0 16px 48px rgba(20, 22, 28, 0.16);
+}
+
+/* Небольшой хелпер: оборачивай экраны в .quiz-scope, чтобы получить фон/шрифт */
+.quiz-scope {
+  font-family: var(--q-font-body);
+  color: var(--q-ink);
+  background: var(--q-bg);
+}

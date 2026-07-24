@@ -1,0 +1,113 @@
+.answer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+
+  @media (min-width: 640px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.answer-tile {
+  --tile: var(--q-ans-0);
+  --tile-ink: #fff;
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 96px;
+  padding: 18px 22px;
+  border: 0;
+  border-radius: var(--q-radius);
+  background: var(--tile);
+  color: var(--tile-ink);
+  font-family: var(--q-font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.16);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.15s ease,
+    opacity 0.15s ease;
+
+  &--c0 { --tile: var(--q-ans-0); }
+  &--c1 { --tile: var(--q-ans-1); }
+  &--c2 { --tile: var(--q-ans-2); --tile-ink: #14161c; }
+  &--c3 { --tile: var(--q-ans-3); }
+
+  &:hover:not(.is-disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 0 rgba(0, 0, 0, 0.18);
+  }
+  &:active:not(.is-disabled) {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+  }
+
+  &.is-selected {
+    outline: 4px solid var(--q-ink);
+    outline-offset: 3px;
+  }
+
+  &.is-disabled {
+    cursor: default;
+  }
+
+  /* Режим показа правильных ответов */
+  &.is-revealed {
+    box-shadow: none;
+    transform: none;
+  }
+  &.is-dimmed {
+    opacity: 0.35;
+    filter: grayscale(0.4);
+  }
+  &.is-correct {
+    outline: 4px solid #fff;
+    outline-offset: -4px;
+    box-shadow: 0 0 0 3px var(--q-ink);
+  }
+  &.is-wrong {
+    opacity: 0.9;
+    filter: grayscale(0.15);
+  }
+}
+
+.answer-tile__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.answer-tile--c2 .answer-tile__icon {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.answer-tile__shape {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.answer-tile__text {
+  flex: 1 1 auto;
+}
+
+.answer-tile__mark {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--q-ink);
+}

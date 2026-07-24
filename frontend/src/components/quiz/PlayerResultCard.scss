@@ -1,0 +1,62 @@
+.result-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 320px;
+  padding: 48px 24px;
+  border-radius: var(--q-radius);
+  text-align: center;
+  color: #fff;
+}
+
+.result-card.is-correct {
+  background: var(--q-success);
+}
+.result-card.is-wrong {
+  background: var(--q-danger);
+}
+
+.result-card__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  animation: result-pop 0.4s cubic-bezier(0.2, 0.8, 0.3, 1.4);
+}
+
+.result-card__title {
+  margin: 0;
+  font-family: var(--q-font-display);
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.result-card__points {
+  margin: 0;
+  font-family: var(--q-font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.result-card__hint {
+  margin: 0;
+  font-size: 1.05rem;
+  opacity: 0.95;
+}
+
+@keyframes result-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

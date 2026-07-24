@@ -1,0 +1,68 @@
+.final-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 28px;
+  border-radius: var(--q-radius);
+  background: var(--q-surface);
+  border: 1px solid var(--q-border);
+  box-shadow: var(--q-shadow-lg);
+  text-align: center;
+}
+
+.final-score__medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--q-primary);
+}
+
+.final-score--rank-1 .final-score__medal { background: #f2b705; }
+.final-score--rank-2 .final-score__medal { background: #a7adb8; }
+.final-score--rank-3 .final-score__medal { background: #cd8c52; }
+
+.final-score__place {
+  margin: 0;
+  color: var(--q-muted);
+  font-size: 1rem;
+}
+.final-score__place strong {
+  color: var(--q-ink);
+}
+
+.final-score__name {
+  margin: 0;
+  font-family: var(--q-font-display);
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--q-ink);
+}
+
+.final-score__score {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 24px;
+  border-radius: var(--q-radius-pill);
+  background: var(--q-surface-2);
+}
+
+.final-score__score-value {
+  font-family: var(--q-font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--q-primary);
+}
+
+.final-score__score-label {
+  color: var(--q-muted);
+  font-size: 0.95rem;
+}
