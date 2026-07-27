@@ -1,6 +1,6 @@
 # Eido - Веб-сервис для проведения квизов в реальном времени
 
-**Eido** - это учебный веб-сервис для создания и проведения интерактивных квизов в реальном времени (аналог Kahoot). Проект разработан в рамках практики Факультета компьютерных наук Высшей школы экономики на направдение Прикладная математика и информатика совместно с группой компаний VK. (Eido _(пер. греческий)_ - «видеть», «созерцать», «смотреть», «глядеть»)
+**Eido** - это учебный веб-сервис для создания и проведения интерактивных квизов в реальном времени (аналог Kahoot). Проект разработан в рамках практики Факультета компьютерных наук Высшей школы экономики на направление Прикладная математика и информатика совместно с группой компаний VK. (Eido _(пер. греческий)_ - «видеть», «созерцать», «смотреть», «глядеть»)
 
 ---
 
@@ -68,65 +68,127 @@ Eido/
 ---
 
 ## ⚙️ Установка и запуск
-
-### Бэкенд
-
+### Бэкенд и база данных
+#### 1. Клонирование репозитория
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # или venv\Scripts\activate на Windows
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver
+git clone https://github.com/Mr-Skvorech/Eido.git
+cd Eido
 ```
 
-Для WebSocket‑соединений используйте Uvicorn (обязательно, т.к. используется ASGI):
+#### 2. Настройка базы данных
+
+Проект использует MySQL. Убедитесь, что MySQL установлен и запущен.
+Создайте базу данных:
+```sql
+CREATE DATABASE eido_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+#### 3. Настройка переменныго окружения
+
+В корневой папке backend/ создайте файл .env со следующим содержимым:
+```text
+# Django
+SECRET_KEY=your-secret-key-here
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=http://localhost:5173
+CSRF_TRUSTED_ORIGINS=http://localhost:5173
+
+# Database
+DB_NAME=eido_db
+DB_USER=your-db-user
+DB_PASSWORD=your-db-password
+DB_HOST=localhost
+DB_PORT=3306
+```
+    Важно: Замените your-secret-key-here, your-db-user и your-db-password на свои значения. Для генерации секретного ключа можно использовать команду:
+    bash
+
+    python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+
+#### 4. Запуск бэкенда
 ```bash
+cd backend
+
+# Создание и активация виртуального окружения
+python -m venv venv
+source venv/bin/activate      # Linux / macOS
+# или
+venv\Scripts\activate         # Windows
+
+# Установка зависимостей
+pip install -r requirements.txt
+
+# Применение миграций
+python manage.py migrate
+
+# (Опционально) Создание администратора Django для доступа к админке
+python manage.py createsuperuser
+
+# Запуск сервера разработки Django (для API)
+python manage.py runserver
+```
+Для работы WebSocket-соединений обязательно используйте Uvicorn (ASGI-сервер). Откройте новый терминал и выполните:
+```bash
+cd backend
+source venv/bin/activate      # Linux / macOS
+# или
+venv\Scripts\activate         # Windows
 
 uvicorn Eido_quiz.asgi:application --reload --port 8000
 ```
 
-Фронтенд
+Для WebSocket‑соединений используйте Uvicorn (обязательно, т.к. используется ASGI):
 ```bash
+uvicorn Eido_quiz.asgi:application --reload --port 8000
+```
 
+### Фронтенд
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
 Приложение будет доступно по адресу http://localhost:5173 (или другому порту, указанному Vite).
-🔌 API‑эндпоинты (префикс /api/)
-```text
-Метод	Путь	Назначение
-POST	/auth/register/	Регистрация
-POST	/auth/login/	Вход (JWT)
-GET	/auth/me/	Текущий пользователь
-GET	/quizzes/	Список квизов текущего организатора
-POST	/quizzes/	Создание квиза
-GET	/quizzes/<id>/get/	Получение квиза по ID
-POST	/quizzes/<id>/start/	Создание игровой комнаты (возвращает PIN)
-POST	/game/join/	Вход участника по PIN
-POST	/game/rooms/<pin>/end/	Завершение игры
-GET	/game/rooms/<pin>/results/	Результаты игры
-GET	/history/hosted/	История проведённых игр (орг)
-GET	/history/played/	История участия (игрок)
-```
+## 🔌 API‑эндпоинты (префикс /api/)
+
+| Метод | Путь | Назначение |
+|-------|------|------------|
+| POST | `/auth/register/` | Регистрация пользователя |
+| POST | `/auth/login/` | Вход (JWT-токен) |
+| GET | `/auth/me/` | Данные текущего авторизованного пользователя |
+| POST | `/token/refresh/` | Обновление JWT-токена |
+| GET | `/quizzes/` | Список квизов текущего организатора |
+| POST | `/quizzes/` | Создание нового квиза |
+| GET | `/quizzes/<int:quiz_id>/get/` | Получение квиза по ID (только для создателя) |
+| PUT | `/quizzes/<int:quiz_id>/update/` | Полное обновление квиза |
+| POST | `/quizzes/<int:quiz_id>/start/` | Создание игровой комнаты, возвращает PIN |
+| POST | `/game/join/` | Вход участника в комнату по PIN (создание нового участника) |
+| POST | `/game/rejoin/` | Переподключение участника по session_token (без потери очков) |
+| POST | `/game/rooms/<str:pin>/end/` | Завершение игры (передаёт финальные очки, деактивирует комнату) |
+| GET | `/game/rooms/<str:pin>/results/` | Результаты игры (список участников с очками) |
+| GET | `/history/hosted/` | История проведённых игр (для организатора) |
+| GET | `/history/played/` | История участия (для игрока) |
 
     Примечание: в текущей версии URL‑ы содержат плейсхолдеры вида <int:quiz_id>. При реальном использовании они заменяются на числовые ID.
 
-📡 Socket.IO‑события
-```text
-Клиент → Сервер	Сервер → Клиент	Описание
-join_room	room_joined	Вход в комнату по PIN
-player_joined	new_player	Уведомление хоста о новом игроке
-start_quiz	game_started	Старт игры
-send_question	receive_question	Отправка вопроса игрокам
-submit_answer	player_answered	Ответ игрока (хосту)
-show_results	results_revealed	Показ правильного ответа
-end_quiz	quiz_ended	Завершение игры (лидерборд)
-```
+## 📡 Socket.IO‑события
 
-🧪 Тестирование
+| Тип | Событие (клиент → сервер) | Событие (сервер → клиент) | Описание |
+|-----|---------------------------|---------------------------|----------|
+| **Подключение** | `connect` (автоматически) | – | Клиент подключается к серверу |
+| **Отключение** | `disconnect` (автоматически) | `player_left` | Клиент отключается; сервер уведомляет комнату об уходе игрока |
+| **Вход в комнату** | `join_room` | `room_joined` | Клиент запрашивает вход по PIN; сервер подтверждает |
+| **Уведомление о новом игроке** | `player_joined` | `new_player` | Клиент сообщает свои данные; сервер уведомляет хоста |
+| **Запуск игры** | `start_quiz` | `game_started` | Хост запускает квиз; сервер оповещает всех в комнате |
+| **Отправка вопроса** | `send_question` | `receive_question` | Хост отправляет вопрос; сервер транслирует его всем игрокам |
+| **Ответ игрока** | `submit_answer` | `player_answered` | Игрок отправляет ответ; сервер вычисляет очки и возвращает результат игроку |
+| **Показ результатов вопроса** | `show_results` | `results_revealed` | Хост показывает правильные ответы; сервер транслирует результаты |
+| **Завершение квиза** | `end_quiz` | `quiz_ended` | Хост завершает игру; сервер передаёт финальный лидерборд |
+| **Синхронизация хоста** | `host_sync` | `host_state` | Хост запрашивает текущее состояние игры; сервер возвращает фазу, вопрос, таймер, результаты и игроков |
+
+## 🧪 Тестирование
 
 Для локального тестирования:
 
@@ -134,12 +196,12 @@ end_quiz	quiz_ended	Завершение игры (лидерборд)
 
     Создайте квиз с вопросами (можно добавить изображения).
 
-    Запустите квиз — получите PIN‑код.
+    Запустите квиз - получите PIN‑код.
 
     Откройте второй браузер (или режим инкогнито) и войдите как участник по PIN.
 
     Проходите квиз в реальном времени, наблюдайте за обновлением результатов у хоста.
 
-🤝 Вклад
+## 🤝 Вклад
 
-Проект выполнен в рамках учебного задания. Автор — Mr-Skvorech.
+Проект выполнен в рамках учебного задания. Автор - Mr-Skvorech.
