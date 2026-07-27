@@ -102,9 +102,9 @@ DB_HOST=localhost
 DB_PORT=3306
 ```
     Важно: Замените your-secret-key-here, your-db-user и your-db-password на свои значения. Для генерации секретного ключа можно использовать команду:
-    bash
-
-    python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```bash
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
 
 #### 4. Запуск бэкенда
 ```bash
