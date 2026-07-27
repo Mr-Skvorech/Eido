@@ -7,18 +7,24 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Frontend
-node_modules/
-dist/
-dist-ssr/
-*.local
-
 # Environment
 backend/.env
 backend/venv/
 
 # Django
 backend/media/
+
+# Python
+backend/core/__pycache__/
+backend/core/migrations/__pycache__/
+backend/Eido_quiz/__pycache__/
+*.pyc
+db.sqlite3
+
+# Node
+frontend/node_modules/
+frontend/dist/
+.env.local
 
 # Editor directories and files
 .vscode/*
