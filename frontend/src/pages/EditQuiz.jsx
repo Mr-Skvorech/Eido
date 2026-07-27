@@ -108,6 +108,9 @@ export default function EditQuiz() {
         const question = updatedQuestions[qIndex];
 
         if (question.is_multiple_choice) {
+            const isLastCorrect = question.choices[cIndex].is_correct &&
+                question.choices.filter(c => c.is_correct).length === 1;
+            if (isLastCorrect) return; // нельзя снять единственный оставшийся правильный ответ
             question.choices[cIndex].is_correct = !question.choices[cIndex].is_correct;
         } else {
             question.choices.forEach((choice, index) => {

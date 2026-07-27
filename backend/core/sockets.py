@@ -1,60 +1,44 @@
 import socketio
+import time
 from asgiref.sync import sync_to_async
 from .models import GameRoom, Participant
 
-# cors_allowed_origins='*' нужен для локальной разработки с React (Vite)
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 connected_players = {}
+game_states = {}  # {room: {'phase': ..., 'question': ..., 'current_question': int, 'start_time': float, 'time_limit': int, 'players': {token: score}}}
 
 @sio.event
 async def connect(sid, environ, auth):
-    """
-    Событие при подключении клиента. 
-    В 'auth' фронтенд будет передавать JWT-токен или session_token.
-    """
     print(f"[Socket] Клиент подключился: {sid}")
 
 @sio.event
 async def disconnect(sid):
     print(f"[Socket] Клиент отключился: {sid}")
- 
     player = connected_players.pop(sid, None)
     if not player:
-        return  # это был хост или кто-то без сохранённой сессии игрока
- 
+        return
     pin = player.get('pin')
     session_token = player.get('session_token')
- 
     if pin:
-        # Сообщаем хосту в реальном времени убрать игрока из списка лобби
         await sio.emit('player_left', {'session_token': session_token}, room=pin)
- 
     if session_token:
         await _remove_abandoned_participant(session_token)
 
 @sync_to_async
 def _remove_abandoned_participant(session_token):
-    """Удаляет запись участника, если игра ещё не началась —
-    он ничего не успел сыграть, терять по факту нечего.
-    Если игра уже идёт — запись остаётся (частичный счёт валиден)."""
     try:
         participant = Participant.objects.select_related('room').get(session_token=session_token)
         if not participant.room.is_started:
             participant.delete()
     except Participant.DoesNotExist:
         pass
- 
- 
+
 @sync_to_async
 def _mark_room_started(pin):
     GameRoom.objects.filter(pin=pin).update(is_started=True)
 
 @sio.event
 async def join_room(sid, data):
-    """
-    Хост (или позже участник) присоединяется к "комнате" Socket.IO, 
-    названной в честь PIN-кода.
-    """
     pin = data.get('pin')
     if pin:
         await sio.enter_room(sid, pin)
@@ -63,69 +47,121 @@ async def join_room(sid, data):
 
 @sio.event
 async def player_joined(sid, data):
-    """
-    Игрок сообщает серверу, что он вошел.
-    Сервер пересылает это сообщение ведущему (в комнату с PIN).
-    """
     pin = data.get('pin')
     name = data.get('name')
-    session_token = data.get('session_token')  # уникальный ID участника (из join_game)
- 
+    session_token = data.get('session_token')
     if pin and name:
         connected_players[sid] = {'pin': pin, 'session_token': session_token}
- 
         await sio.emit('new_player', {'name': name, 'session_token': session_token}, room=pin)
         print(f"[Socket] Игрок {name} зашел в комнату {pin}")
 
 @sio.event
 async def start_quiz(sid, data):
-    """
-    Ведущий дает команду начать квиз.
-    """
     pin = data.get('pin')
     if pin:
-        print(f"[Socket] Запуск игры в комнате {pin}")
-        # Рассылаем всем участникам комнаты событие 'game_started'
-        await _mark_room_started(pin)  # с этого момента disconnect не удаляет участников
+        await _mark_room_started(pin)
         await sio.emit('game_started', {'pin': pin}, room=pin)
+        print(f"[Socket] Запуск игры в комнате {pin}")
 
 @sio.on('send_question')
 async def on_send_question(sid, data):
-    """Ведущий отправляет новый вопрос игрокам."""
     room = data.get('room')
     question_data = data.get('question')
-    # Пересылаем вопрос всем в комнате, кроме самого ведущего
+    full_question = data.get('full_question')
+    current_question = data.get('current_question', 0)
+    time_limit = question_data.get('time_limit', 20) if question_data else 20
+
+    state = {
+        "phase": "question",
+        "question": question_data,          # публичная версия
+        "full_question": full_question,     # серверная версия
+        "current_question": current_question,
+        "start_time": time.time(),
+        "time_limit": time_limit,
+        "players": game_states.get(room, {}).get("players", {})
+    }
+    game_states[room] = state
     await sio.emit('receive_question', question_data, room=room, skip_sid=sid)
 
 @sio.on('show_results')
 async def on_show_results(sid, data):
-    """Ведущий показывает правильный ответ и результаты после окончания таймера."""
     room = data.get('room')
     results_data = data.get('results')
-    # Рассылаем результаты игрокам (например, id правильного ответа)
+    state = game_states.get(room, {})
+    state["phase"] = "results"
+    state["results"] = results_data
+    game_states[room] = state
     await sio.emit('results_revealed', results_data, room=room, skip_sid=sid)
 
 @sio.on('end_quiz')
 async def on_end_quiz(sid, data):
-    """Ведущий завершает игру (показан финальный подиум)."""
     room = data.get('room')
-    scores = data.get('scores')  # Ожидаем словарь {session_token: score}
+    scores = data.get('scores')
     leaderBoard = data.get('leaderBoard')
     await sio.emit('quiz_ended', {'scores': scores, 'leaderBoard': leaderBoard}, room=room, skip_sid=sid)
+    game_states.pop(room, None)
 
+@sio.on("host_sync")
+async def host_sync(sid, data):
+    room = data.get("room")
+    state = game_states.get(room)
+    if not state:
+        await sio.emit("host_state", {"phase": "unknown"}, room=sid)
+        return
 
-# --- ЛОГИКА ИГРОКА (Player -> Server -> Host) ---
+    response = {
+        "phase": state["phase"],
+        "current_question": state.get("current_question", 0),
+        "question": state.get("question"),
+        "results": state.get("results"),
+        "players": state.get("players", {})
+    }
+    if state["phase"] == "question":
+        elapsed = time.time() - state["start_time"]
+        remaining = max(0, state["time_limit"] - elapsed)
+        response["time_left"] = remaining
+
+    await sio.emit("host_state", response, room=sid)
 
 @sio.on('submit_answer')
 async def on_submit_answer(sid, data):
-    """Игрок отправляет свой ответ."""
     room = data.get('room')
-    answer_data = {
-        'player_id': data.get('player_id'), # Уникальный ID или токен игрока
-        'choice_id': data.get('choice_id'), # ID выбранного ответа
-        'time_taken': data.get('time_taken') # За какое время ответил (для начисления очков)
-    }
-    # Отправляем ответ ТОЛЬКО ведущему, чтобы другие игроки не видели чужие ответы
-    # Для простоты шлем всем в комнате, но фронтенд игроков будет игнорировать событие 'player_answered'
-    # (Или можно сохранять sid ведущего при создании комнаты и слать адресно ему)
-    await sio.emit('player_answered', answer_data, room=room, skip_sid=sid)
+    player_id = data.get('player_id')  # session_token игрока
+    choice_id = data.get('choice_id')
+    time_taken = data.get('time_taken')
+
+    # Вычисляем очки (дублируем логику хоста)
+    # Для этого нужно знать текущий вопрос и правильные ответы
+    state = game_states.get(room)
+    if not state or state["phase"] != "question":
+        return
+
+    question_data = state.get("full_question")
+    if not question_data:
+        return
+
+    choices = question_data.get("choices", [])
+    correct_ids = [c["id"] for c in choices if c.get("is_correct", False)]
+    is_correct = False
+    if isinstance(choice_id, list):
+        is_correct = sorted(choice_id) == sorted(correct_ids)
+    else:
+        is_correct = choice_id in correct_ids
+
+    points_awarded = 0
+    if is_correct:
+        points_awarded = max(0, 1000 - (time_taken * 10))
+
+    # Сохраняем очки в game_states
+    if "players" not in state:
+        state["players"] = {}
+    state["players"][player_id] = state["players"].get(player_id, 0) + points_awarded
+
+    # Пересылаем хосту
+    await sio.emit('player_answered', {
+        'player_id': player_id,
+        'choice_id': choice_id,
+        'time_taken': time_taken,
+        'points_awarded': points_awarded,
+        'total_score': state["players"][player_id]
+    }, room=room, skip_sid=sid)

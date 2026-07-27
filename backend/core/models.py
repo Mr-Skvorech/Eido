@@ -50,6 +50,8 @@ class GameRoom(models.Model):
     is_active = models.BooleanField(default=True)
     is_started = models.BooleanField(default=False)  # True после старта игры — до этого можно чистить "призрачных" участников
     created_at = models.DateTimeField(auto_now_add=True)
+    current_question_index = models.IntegerField(default=0)
+    is_finished = models.BooleanField(default=False)  # True после окончания игры
  
     def __str__(self):
         return f"Room {self.pin} ({self.quiz.title})"

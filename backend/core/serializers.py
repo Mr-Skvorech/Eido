@@ -8,13 +8,21 @@ class ChoiceSerializer(serializers.ModelSerializer):
         fields = ['id', 'text', 'is_correct']
 
 class QuestionSerializer(serializers.ModelSerializer):
-    image = Base64ImageField(required=False, allow_null=True) # Само разберет Base64 строку в файл!
+    image = Base64ImageField(required=False, allow_null=True)
     choices = ChoiceSerializer(many=True)
     id = serializers.IntegerField(required=False)
 
     class Meta:
         model = Question
         fields = ['id', 'text', 'time_limit', 'image', 'is_multiple_choice', 'choices']
+
+    def validate(self, data):
+        choices = data.get('choices', [])
+        if not any(choice.get('is_correct') for choice in choices):
+            raise serializers.ValidationError({
+                'choices': 'У вопроса должен быть хотя бы один правильный вариант ответа.'
+            })
+        return data
 
 class QuizSerializer(serializers.ModelSerializer):
     # Явно указываем вложенный сериализатор для вопросов

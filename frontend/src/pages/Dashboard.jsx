@@ -95,7 +95,7 @@ export default function Dashboard() {
             {/* Шапка дашборда */}
             <div className="uk-flex uk-flex-between uk-flex-middle uk-margin-large-bottom">
                 <div>
-                    <h1 className="uk-heading-small uk-margin-remove">Мои Квизы</h1>
+                    <h1 className="uk-heading-small uk-margin-remove">Eido</h1>
                     <p className="uk-text-meta uk-margin-remove">Управляйте вашими викторинами или создайте новую</p>
                 </div>
                 <div>

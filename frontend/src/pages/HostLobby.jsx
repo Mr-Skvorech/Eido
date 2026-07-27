@@ -19,10 +19,10 @@ export default function HostLobby() {
       if (!activeRef.current) return;
 
       if (data?.name) {
-        setPlayers((prev) => {
-          // Защита от дублей на случай повторного join_room в StrictMode
-          if (prev.includes(data.name)) return prev;
-          return [...prev, data.name];
+        setPlayers(prev => {
+            if (prev.some(p => p.session_token === data.session_token))
+                return prev;
+            return [...prev, data];
         });
       } else {
         console.warn('Неизвестный формат данных:', data);
@@ -97,12 +97,12 @@ export default function HostLobby() {
               Ожидание игроков...
             </div>
           ) : (
-            players.map((player) => (
-              <div key={player}>
-                <div className="uk-card uk-card-secondary uk-card-body uk-padding-small uk-border-rounded">
-                  <strong>{player}</strong>
+            players.map(player => (
+                <div key={player.session_token}>
+                    <div className="uk-card uk-card-secondary uk-card-body uk-padding-small uk-border-rounded">
+                        <strong>{player.name}</strong>
+                    </div>
                 </div>
-              </div>
             ))
           )}
         </div>
