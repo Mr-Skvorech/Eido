@@ -28,7 +28,7 @@
 - **SimpleJWT** - JWT‑авторизация.
 - **python‑socketio** (AsyncServer, ASGI) - WebSocket.
 - **Uvicorn** - ASGI‑сервер.
-- **SQLite** (по умолчанию) - БД.
+- **MySQL** (по умолчанию) - БД.
 
 ### Фронтенд
 - **React** (Vite) - SPA.
