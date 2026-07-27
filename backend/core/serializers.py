@@ -25,13 +25,19 @@ class QuestionSerializer(serializers.ModelSerializer):
         return data
 
 class QuizSerializer(serializers.ModelSerializer):
-    # Явно указываем вложенный сериализатор для вопросов
     questions = QuestionSerializer(many=True)
+    active_room = serializers.SerializerMethodField()
 
     class Meta:
         model = Quiz
-        fields = ['id', 'title', 'description', 'created_at', 'questions']
+        fields = ['id', 'title', 'description', 'created_at', 'questions', 'active_room']
         read_only_fields = ['id', 'created_at']
+
+    def get_active_room(self, obj):
+        room = GameRoom.objects.filter(quiz=obj, is_active=True).first()
+        if not room:
+            return None
+        return {'pin': room.pin, 'is_started': room.is_started}
 
     def create(self, validated_data):
         questions_data = validated_data.pop('questions')

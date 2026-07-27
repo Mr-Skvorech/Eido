@@ -17,7 +17,13 @@ export default function PlayerWaiting() {
     // (иначе после кратковременного обрыва связи игрок не получит game_started)
     const roomPin = localStorage.getItem('room_pin');
     const rejoinRoom = () => {
-      if (roomPin) socket.emit('join_room', { pin: roomPin });
+      const roomId = localStorage.getItem('room_pin');
+      const sessionToken = localStorage.getItem('session_token');
+      const playerName = localStorage.getItem('player_name');
+      if (roomId && sessionToken) {
+        socket.emit('join_room', { pin: roomId });
+        socket.emit('player_joined', { pin: roomId, name: playerName, session_token: sessionToken });
+      }
     };
     if (socket.connected) rejoinRoom();
     socket.on('connect', rejoinRoom);

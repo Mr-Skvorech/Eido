@@ -59,29 +59,23 @@ def update_quiz(request, quiz_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def start_game_room(request, quiz_id):
-    """Создает игровую комнату для квиза и возвращает PIN."""
-    # Убедимся, что квиз существует и принадлежит текущему пользователю
     quiz = get_object_or_404(Quiz, id=quiz_id, creator=request.user)
 
-    # Защита от дублей: если для этого квиза уже есть активная комната, возвращаем её
     active_room = GameRoom.objects.filter(quiz=quiz, is_active=True).first()
     if active_room:
         return Response({
             'pin': active_room.pin,
+            'is_started': active_room.is_started,
             'message': 'Room is already active.'
         }, status=status.HTTP_200_OK)
 
     pin = generate_unique_pin()
-    room = GameRoom.objects.create(
-        quiz=quiz,
-        pin=pin,
-        is_active=True,
-        is_started=False  # Комната только что создана, игра ещё не началась
-    )
+    room = GameRoom.objects.create(quiz=quiz, pin=pin, is_active=True, is_started=False)
 
     return Response({
         'pin': room.pin,
-        'room_id': room.id
+        'room_id': room.id,
+        'is_started': False,
     }, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])

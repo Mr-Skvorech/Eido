@@ -1,4 +1,5 @@
 import socketio
+import asyncio
 import time
 from asgiref.sync import sync_to_async
 from .models import GameRoom, Participant
@@ -22,7 +23,19 @@ async def disconnect(sid):
     if pin:
         await sio.emit('player_left', {'session_token': session_token}, room=pin)
     if session_token:
-        await _remove_abandoned_participant(session_token)
+        asyncio.create_task(_maybe_remove_abandoned_participant(session_token))
+
+
+async def _maybe_remove_abandoned_participant(session_token):
+    # Даём игроку несколько секунд на переподключение (например, при F5),
+    # прежде чем считать его окончательно ушедшим
+    await asyncio.sleep(10)
+    still_connected = any(
+        p.get('session_token') == session_token for p in connected_players.values()
+    )
+    if still_connected:
+        return
+    await _remove_abandoned_participant(session_token)
 
 @sync_to_async
 def _remove_abandoned_participant(session_token):

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import socket from '../utils/socket';
+import api from '../utils/api';
 
 export default function HostLobby() {
   const { quizId, pin } = useParams();
@@ -8,6 +9,18 @@ export default function HostLobby() {
   const [players, setPlayers] = useState([]);
   const [copied, setCopied] = useState(false);
   const activeRef = useRef(true);
+
+  useEffect(() => {
+    const fetchCurrentPlayers = async () => {
+      try {
+        const res = await api.get(`/api/game/rooms/${pin}/results/`);
+        setPlayers(res.data.map(p => ({ name: p.name, session_token: p.session_token })));
+      } catch (err) {
+        console.error('Не удалось получить список игроков', err);
+      }
+    };
+    fetchCurrentPlayers();
+  }, [pin]);
 
   useEffect(() => {
     activeRef.current = true;

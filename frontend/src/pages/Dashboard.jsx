@@ -69,8 +69,8 @@ export default function Dashboard() {
     const handleLaunchQuiz = async (quizId) => {
         try {
             const response = await api.post(`/api/quizzes/${quizId}/start/`);
-            const { pin } = response.data;
-            navigate(`/host/lobby/${quizId}/${pin}`);
+            const { pin, is_started } = response.data;
+            navigate(is_started ? `/host/game/${quizId}/${pin}` : `/host/lobby/${quizId}/${pin}`);
         } catch (error) {
             console.error('Ошибка запуска игры:', error);
             notifyError("Не удалось запустить игру. Попробуйте ещё раз.");
@@ -198,11 +198,16 @@ export default function Dashboard() {
                                         </button>
                                     </div>
                                     <div className="uk-margin-top">
+                                        {quiz.active_room && (
+                                            <span className="uk-label uk-label-warning uk-margin-small-bottom uk-width-1-1" style={{ display: 'inline-block' }}>
+                                                Игра уже идёт · PIN {quiz.active_room.pin}
+                                            </span>
+                                        )}
                                         <button 
                                             className="uk-button uk-button-primary uk-button-large uk-width-1-1" 
                                             onClick={() => handleLaunchQuiz(quiz.id)}
                                         >
-                                            Запустить квиз и получить PIN
+                                            {quiz.active_room ? 'Вернуться к игре' : 'Запустить квиз и получить PIN'}
                                         </button>
                                     </div>
                                 </div>

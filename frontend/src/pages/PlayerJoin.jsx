@@ -1,24 +1,58 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import socket from '../utils/socket';
+import api from '../utils/api';
+import { notifyError } from '../utils/notify';
 
 export default function PlayerJoin() {
   const [pin, setPin] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [resumableSession, setResumableSession] = useState(null); // { pin, name, is_started }
+  const [resumeLoading, setResumeLoading] = useState(true);       // ← новые состояния
 
   const navigate = useNavigate();
+
+  // При заходе на страницу проверяем, нет ли сохранённой сессии, к которой можно вернуться
+  useEffect(() => {
+      const checkResumableSession = async () => {
+        const savedPin = localStorage.getItem('room_pin');
+        const savedToken = localStorage.getItem('session_token');
+
+        if (!savedPin || !savedToken) {
+          setResumeLoading(false);
+          return;
+        }
+
+        await api.post("/api/game/rejoin/", { pin: savedPin, session_token: savedToken })
+              .then(res => setResumableSession({ pin: savedPin, name: res.data.name, is_started: res.data.is_started }))
+              .catch(err => {
+                if (err.response?.status !== 404 && err.response?.status !== 410) {
+                  notifyError('Не удалось проверить сохранённую сессию');
+                }
+              });
+
+        setResumeLoading(false);
+      };
+
+      checkResumableSession();
+  }, []);
 
   const enterRoom = (finalPin, sessionToken, finalName, isStarted) => {
     localStorage.setItem('session_token', sessionToken);
     localStorage.setItem('player_name', finalName);
     localStorage.setItem('room_pin', finalPin);
+
     socket.emit('join_room', { pin: finalPin });
     socket.emit('player_joined', { pin: finalPin, name: finalName, session_token: sessionToken });
 
-    // Если игра уже идёт (переподключение мидгейм) - сразу в игру, а не в лобби ожидания
     navigate(isStarted ? `/player/game/${finalPin}` : '/player/waiting');
+  };
+
+  const handleResume = () => {
+    if (!resumableSession) return;
+    enterRoom(resumableSession.pin, localStorage.getItem('session_token'), resumableSession.name, resumableSession.is_started);
   };
 
   const handleJoin = async (e) => {
@@ -81,6 +115,18 @@ export default function PlayerJoin() {
     <div className="uk-flex uk-flex-center uk-flex-middle" style={{ height: '100vh', backgroundColor: '#f8f8f8' }}>
       <div className="uk-card uk-card-default uk-card-body uk-width-1-1 uk-width-1-3@m uk-box-shadow-large">
         <h2 className="uk-card-title uk-text-center uk-text-bold">Eido_quiz</h2>
+
+        {!resumeLoading && resumableSession && (
+          <div className="uk-alert-primary" uk-alert="true">
+            <p>
+              Ты уже участвуешь в игре <strong>PIN {resumableSession.pin}</strong> как{' '}
+              <strong>{resumableSession.name}</strong>.
+            </p>
+            <button type="button" className="uk-button uk-button-primary uk-width-1-1" onClick={handleResume}>
+              Вернуться в игру
+            </button>
+          </div>
+        )}
 
         {error && (
           <div className="uk-alert-danger" data-uk-alert>
