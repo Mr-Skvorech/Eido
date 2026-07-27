@@ -73,7 +73,7 @@ export default function PlayerHistory() {
                             <th>PIN</th>
                             <th>Дата</th>
                             <th className="uk-text-right">Очки</th>
-                            <th className="uk-text-right">Игроков в комнате</th>
+                            <th className="uk-text-right">Место</th>
                         </tr>
                     </thead>
                 )}
@@ -84,7 +84,9 @@ export default function PlayerHistory() {
                             <td><span className="uk-badge">{game.room_pin}</span></td>
                             <td>{new Date(game.game_date).toLocaleString()}</td>
                             <td className="uk-text-right uk-text-primary"><strong>{game.score}</strong></td>
-                            <td className="uk-text-right uk-text-muted">{game.total_participants}</td>
+                            <td className="uk-text-right uk-text-muted">
+                                {game.placement ? `${game.placement} из ${game.total_participants}` : '—'}
+                            </td>
                         </tr>
                     ))}
                 </tbody>

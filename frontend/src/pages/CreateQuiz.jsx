@@ -70,9 +70,9 @@ export default function CreateQuiz() {
             let foundCorrect = false;
             updatedQuestions[qIndex].choices.forEach(choice => {
                 if (choice.is_correct && !foundCorrect) {
-                    foundCorrect = true; // Оставляем первый найденный правильный
+                    foundCorrect = true;
                 } else {
-                    choice.is_correct = false; // Все остальные сбрасываем
+                    choice.is_correct = false;
                 }
             });
             
@@ -98,7 +98,7 @@ export default function CreateQuiz() {
         if (question.is_multiple_choice) {
             const isLastCorrect = question.choices[cIndex].is_correct &&
                 question.choices.filter(c => c.is_correct).length === 1;
-            if (isLastCorrect) return; // нельзя снять единственный оставшийся правильный ответ
+            if (isLastCorrect) return;
             question.choices[cIndex].is_correct = !question.choices[cIndex].is_correct;
         } else {
             question.choices.forEach((choice, index) => {
@@ -109,7 +109,7 @@ export default function CreateQuiz() {
     };
 
     const handleRemoveQuestion = (index) => {
-        if (questions.length === 1) return; // Нельзя удалить единственный вопрос
+        if (questions.length === 1) return;
         setQuestions(questions.filter((_, i) => i !== index));
     };
 
@@ -235,7 +235,7 @@ export default function CreateQuiz() {
                             </div>
                         </div>
 
-                        {/* Варианты ответов (Исправлено: возвращен текстовый инпут) */}
+                        {/* Варианты ответов */}
                         <div className="uk-child-width-1-2@m uk-grid-small" uk-grid="true">
                             {question.choices.map((choice, cIndex) => (
                                 <div key={cIndex} className="uk-flex uk-flex-middle uk-margin-small-bottom">
@@ -259,7 +259,7 @@ export default function CreateQuiz() {
                             ))}
                         </div>
                     </div>
-                ))} {/* Исправлено: синтаксически корректное закрытие цикла */}
+                ))}
 
                 {/* Нижняя панель действий */}
                 <div className="uk-margin-medium-top uk-flex uk-flex-between">

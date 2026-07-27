@@ -5,7 +5,7 @@ from .models import GameRoom, Participant
 
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 connected_players = {}
-game_states = {}  # {room: {'phase': ..., 'question': ..., 'current_question': int, 'start_time': float, 'time_limit': int, 'players': {token: score}}}
+game_states = {}
 
 @sio.event
 async def connect(sid, environ, auth):
@@ -152,12 +152,10 @@ async def on_submit_answer(sid, data):
     if is_correct:
         points_awarded = max(0, 1000 - (time_taken * 10))
 
-    # Сохраняем очки в game_states
     if "players" not in state:
         state["players"] = {}
     state["players"][player_id] = state["players"].get(player_id, 0) + points_awarded
 
-    # Пересылаем хосту
     await sio.emit('player_answered', {
         'player_id': player_id,
         'choice_id': choice_id,

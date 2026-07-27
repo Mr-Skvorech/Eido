@@ -9,6 +9,7 @@ const PlayerGame = () => {
   const [isCorrect, setIsCorrect] = useState(null);
   const [finalResults, setFinalResults] = useState(null);
   const [leaderboard, setLeaderboard] = useState(null);
+  const [didNotAnswer, setDidNotAnswer] = useState(false);
 
   const playerName = localStorage.getItem('player_name');
   const sessionToken = localStorage.getItem('session_token');
@@ -37,6 +38,7 @@ const PlayerGame = () => {
         setStartTime(Date.now());
         setSelectedChoiceIds([]);
         setIsCorrect(null);
+        setDidNotAnswer(false);
         setStatus('question');
     };
 
@@ -47,7 +49,8 @@ const PlayerGame = () => {
         const isWin = myAnswers.length > 0 &&
                       myAnswers.length === correctIds.length && 
                       myAnswers.every(id => correctIds.includes(id));
-                      
+
+        setDidNotAnswer(myAnswers.length === 0);
         setIsCorrect(isWin);
         setStatus('results');
     };
@@ -162,11 +165,19 @@ const PlayerGame = () => {
 
   if (status === 'results') {
     return (
-      <div className={`uk-flex uk-flex-column uk-flex-middle uk-flex-center`} 
-           style={{height: '100vh', backgroundColor: isCorrect ? '#dff2bf' : '#ffbaba', transition: '0.5s'}}>
-        <span uk-icon={`icon: ${isCorrect ? 'check' : 'close'}; ratio: 5`}></span>
-        <h1 className="uk-heading-medium">{isCorrect ? 'ВЕРНО!' : 'ОШИБКА!'}</h1>
-        <p className="uk-text-large">Жди следующего вопроса...</p>
+      <div className="uk-flex uk-flex-column uk-flex-middle uk-flex-center" 
+          style={{
+            height: '100vh',
+            backgroundColor: didNotAnswer ? '#f0ad4e' : (isCorrect ? '#dff2bf' : '#ffbaba'),
+            transition: '0.5s'
+          }}>
+        <span uk-icon={`icon: ${didNotAnswer ? 'warning' : (isCorrect ? 'check' : 'close')}; ratio: 5`}></span>
+        <h1 className="uk-heading-medium">
+          {didNotAnswer ? 'ВРЕМЯ ВЫШЛО!' : (isCorrect ? 'ВЕРНО!' : 'ОШИБКА!')}
+        </h1>
+        <p className="uk-text-large">
+          {didNotAnswer ? 'Ты не успел ответить' : 'Жди следующего вопроса...'}
+        </p>
       </div>
     );
   }

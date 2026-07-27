@@ -57,7 +57,7 @@ api.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        // Если запрос уже повторяли — выходим
+        // Если запрос уже повторяли - выходим
         if (originalRequest._retry) {
             localStorage.clear();
             window.location.href = '/login';
@@ -66,7 +66,7 @@ api.interceptors.response.use(
 
         originalRequest._retry = true;
 
-        // Если обновление уже выполняется — ставим запрос в очередь
+        // Если обновление уже выполняется - ставим запрос в очередь
         if (isRefreshing) {
             return new Promise((resolve, reject) => {
                 failedQueue.push({ resolve, reject });

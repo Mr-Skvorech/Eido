@@ -4,6 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from .serializers import UserSerializer, QuizSerializer, HostedGameHistorySerializer, PlayerGameHistorySerializer
 from .models import User, Quiz, GameRoom, Participant
+from .sockets import connected_players
 from django.shortcuts import get_object_or_404
 import random
 import string
@@ -115,7 +116,7 @@ def rejoin_game(request):
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny]) # Игрокам не нужен JWT-токен
+@permission_classes([AllowAny])
 def join_game(request):
     """Регистрация игрока в комнате по PIN-коду."""
     pin = request.data.get('pin')
@@ -124,30 +125,43 @@ def join_game(request):
     if not pin or not name:
         return Response({'error': 'PIN и имя обязательны.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Ищем активную комнату по PIN
     room = GameRoom.objects.filter(pin=pin, is_active=True).first()
     if not room:
         return Response({'error': 'Комната не найдена или игра уже завершена.'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Создаем участника
+    existing = Participant.objects.filter(room=room, name__iexact=name).first()
+    if existing:
+        token_str = str(existing.session_token)
+        is_actively_connected = any(
+            p.get('session_token') == token_str for p in connected_players.values()
+        )
+        if is_actively_connected:
+            return Response(
+                {'error': 'Игрок с таким именем уже в этой комнате.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        # Старая запись осиротела (вылетел и не вернулся по сохранённой сессии) —
+        # отдаём тот же session_token, чтобы фронт продолжил игру с прежним счётом
+        return Response({
+            'message': 'Восстановлено предыдущее подключение под этим именем.',
+            'session_token': token_str,
+            'participant_id': existing.id,
+            'name': existing.name,
+            'is_started': room.is_started,
+        }, status=status.HTTP_200_OK)
+
     session_token = uuid.uuid4()
-    participant = Participant(
-        room=room,
-        name=name,
-        session_token=session_token
-    )
-    
-    # НОВАЯ ЛОГИКА: Если игрок авторизован, привязываем его профиль
+    participant = Participant(room=room, name=name, session_token=session_token)
     if request.user.is_authenticated:
         participant.user = request.user
-        
-    participant.save() # Сохраняем в БД
+    participant.save()
 
     return Response({
         'message': 'Успешно присоединились',
         'session_token': str(session_token),
         'participant_id': participant.id,
-        'name': participant.name
+        'name': participant.name,
+        'is_started': room.is_started,
     }, status=status.HTTP_200_OK)
 
 @api_view(['GET'])

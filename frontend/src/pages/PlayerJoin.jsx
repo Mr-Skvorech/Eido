@@ -14,13 +14,10 @@ export default function PlayerJoin() {
     localStorage.setItem('session_token', sessionToken);
     localStorage.setItem('player_name', finalName);
     localStorage.setItem('room_pin', finalPin);
-
-    // Входим в комнату Socket.IO и сообщаем о себе (с session_token —
-    // без него сервер не сможет отследить это подключение при disconnect)
     socket.emit('join_room', { pin: finalPin });
     socket.emit('player_joined', { pin: finalPin, name: finalName, session_token: sessionToken });
 
-    // Если игра уже идёт (переподключение мидгейм) — сразу в игру, а не в лобби ожидания
+    // Если игра уже идёт (переподключение мидгейм) - сразу в игру, а не в лобби ожидания
     navigate(isStarted ? `/player/game/${finalPin}` : '/player/waiting');
   };
 
@@ -30,7 +27,7 @@ export default function PlayerJoin() {
     setIsLoading(true);
 
     try {
-      // Если в localStorage уже есть сессия ИМЕННО для этого PIN — пробуем
+      // Если в localStorage уже есть сессия ИМЕННО для этого PIN - пробуем
       // переподключиться под старым session_token, не создавая нового участника
       // (иначе игрок теряет своё имя/очки при повторном входе после разрыва связи)
       const savedPin = localStorage.getItem('room_pin');
@@ -48,7 +45,7 @@ export default function PlayerJoin() {
           enterRoom(pin, rejoinData.session_token, rejoinData.name, rejoinData.is_started);
           return;
         }
-        // Если реконнект не удался (сессия истекла/игра завершена) — просто идём
+        // Если реконнект не удался (сессия истекла/игра завершена) - просто идём
         // обычным путём ниже и заходим как новый участник
       }
 

@@ -158,11 +158,20 @@ export default function Dashboard() {
                             <div key={quiz.id}>
                                 <div className="uk-card uk-card-default uk-card-hover uk-card-body uk-flex uk-flex-column uk-flex-between">
                                     <div>
-                                        <h3 className="uk-card-title uk-margin-remove-bottom">{quiz.title}</h3>
+                                        <h3
+                                            className="uk-card-title uk-margin-remove-bottom"
+                                            title={quiz.title}
+                                            style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                                        >
+                                            {quiz.title}
+                                        </h3>
                                         <p className="uk-text-meta uk-margin-small-top">
                                             Дата создания: {new Date(quiz.created_at).toLocaleDateString()}
                                         </p>
-                                        <p className="uk-text-break">
+                                        <p
+                                            className="uk-text-break"
+                                            style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                                        >
                                             {quiz.description || 'Описание отсутствует.'}
                                         </p>
                                     </div>

@@ -34,21 +34,14 @@ class QuizSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
     def create(self, validated_data):
-        # 1. Извлекаем вложенные данные (вопросы) из общего словаря
         questions_data = validated_data.pop('questions')
-        
-        # 2. Получаем текущего авторизованного пользователя из контекста запроса
         user = self.context['request'].user
-        
-        # 3. Создаем сам объект Квиза
         quiz = Quiz.objects.create(creator=user, **validated_data)
-        
-        # 4. Проходимся по списку вопросов и создаем их, привязывая к квизу
+
         for question_data in questions_data:
             choices_data = question_data.pop('choices')
             question = Question.objects.create(quiz=quiz, **question_data)
-            
-            # 5. Проходимся по вариантам ответов и создаем их, привязывая к вопросу
+
             for choice_data in choices_data:
                 Choice.objects.create(question=question, **choice_data)
                 
@@ -76,22 +69,20 @@ class QuizSerializer(serializers.ModelSerializer):
             for question_data in questions_data:
                 q_id = question_data.pop('id', None)
                 choices_data = question_data.pop('choices', [])
-                new_image = question_data.pop('image', None)  # None, если картинку не меняли
+                new_image = question_data.pop('image', None)
  
                 if q_id and q_id in existing_questions:
-                    # Обновляем существующий вопрос на месте
                     question = existing_questions[q_id]
                     question.text = question_data.get('text', question.text)
                     question.time_limit = question_data.get('time_limit', question.time_limit)
                     question.is_multiple_choice = question_data.get(
                         'is_multiple_choice', question.is_multiple_choice
                     )
-                    if new_image:  # Прислали новую картинку — заменяем. Иначе старая остаётся.
+                    if new_image:
                         question.image = new_image
                     question.save()
                     kept_ids.add(q_id)
                 else:
-                    # Новый вопрос — создаём с нуля
                     question = Question.objects.create(
                         quiz=instance,
                         image=new_image,
@@ -99,13 +90,11 @@ class QuizSerializer(serializers.ModelSerializer):
                     )
                     kept_ids.add(question.id)
  
-                # Варианты ответов пересоздаём с нуля в любом случае
                 question.choices.all().delete()
                 for choice_data in choices_data:
                     choice_data.pop('id', None)
                     Choice.objects.create(question=question, **choice_data)
- 
-            # Удаляем вопросы, которые убрали из формы редактирования
+
             for old_id, old_question in existing_questions.items():
                 if old_id not in kept_ids:
                     old_question.delete()
@@ -116,10 +105,19 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'email', 'username', 'password']
-        extra_kwargs = {'password': {'write_only': True}} # Пароль не будет возвращаться в ответах API
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("Пользователь с таким email уже зарегистрирован.")
+        return value
+
+    def validate_username(self, value):
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError("Это имя пользователя уже занято.")
+        return value
 
     def create(self, validated_data):
-        # Используем create_user, чтобы пароль правильно захешировался в базе
         user = User.objects.create_user(
             email=validated_data['email'],
             username=validated_data['username'],
@@ -147,9 +145,17 @@ class PlayerGameHistorySerializer(serializers.ModelSerializer):
     quiz_title = serializers.CharField(source='room.quiz.title', read_only=True)
     room_pin = serializers.CharField(source='room.pin', read_only=True)
     game_date = serializers.DateTimeField(source='room.created_at', read_only=True)
-    # Можно добавить поле, чтобы показать общее количество игроков в той комнате
     total_participants = serializers.IntegerField(source='room.participants.count', read_only=True)
+    placement = serializers.SerializerMethodField()
 
     class Meta:
         model = Participant
-        fields = ['id', 'room_pin', 'quiz_title', 'score', 'game_date', 'total_participants']
+        fields = ['id', 'room_pin', 'quiz_title', 'score', 'game_date', 'total_participants', 'placement']
+
+    def get_placement(self, obj):
+        # Место по убыванию очков среди участников той же комнаты
+        ordered_ids = list(obj.room.participants.order_by('-score').values_list('id', flat=True))
+        try:
+            return ordered_ids.index(obj.id) + 1
+        except ValueError:
+            return None

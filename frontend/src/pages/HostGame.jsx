@@ -6,14 +6,28 @@ import { notifyError } from '../utils/notify';
 
 const HostGame = () => {
   const { quizId, roomId } = useParams();
-  const navigate = useNavigate();
-
   const [quiz, setQuiz] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isQuestionActive, setIsQuestionActive] = useState(false);
   const [isShowingResults, setIsShowingResults] = useState(false);
   const [players, setPlayers] = useState({});
+  const [totalPlayers, setTotalPlayers] = useState(0);
+  const [answeredIds, setAnsweredIds] = useState(new Set());
+  const navigate = useNavigate();
+
+  // Тянем общее число игроков при монтировании
+  useEffect(() => {
+    const fetchPlayerCount = async () => {
+      try {
+        const res = await api.get(`/api/game/rooms/${roomId}/results/`);
+        setTotalPlayers(res.data.length);
+      } catch (err) {
+        console.error('Не удалось получить число игроков', err);
+      }
+    };
+    fetchPlayerCount();
+  }, [roomId]);
 
   // Загрузка квиза
   useEffect(() => {
@@ -30,22 +44,13 @@ const HostGame = () => {
   }, [quizId]);
 
   useEffect(() => {
-    console.log("HostGame mounted");
-
-    return () => {
-        console.log("HostGame unmounted");
-    };
-}, []);
-
-// Подключение к комнате — не зависит от квиза, можно сразу
-  useEffect(() => {
     const doJoin = () => socket.emit('join_room', { pin: roomId });
     if (socket.connected) doJoin();
     socket.on('connect', doJoin);
     return () => socket.off('connect', doJoin);
   }, [roomId]);
 
-  // Синхронизация состояния — только когда квиз уже загружен,
+  // Синхронизация состояния - только когда квиз уже загружен,
   // иначе host_state придёт раньше quiz и будет отброшен онлхендлером
   useEffect(() => {
     if (!quiz) return;
@@ -61,7 +66,7 @@ const HostGame = () => {
       if (!quiz) return;
       console.log("HOST_STATE", state);
 
-      // Восстанавливаем очки игроков — раньше терялись при реконнекте
+      // Восстанавливаем очки игроков - раньше терялись при реконнекте
       if (state.players) {
         const restoredPlayers = {};
         Object.entries(state.players).forEach(([token, score]) => {
@@ -108,6 +113,7 @@ const HostGame = () => {
       };
       
       const { player_id, choice_id, time_taken } = data;
+      setAnsweredIds(prev => new Set(prev).add(player_id));
       const currentQuestion = quiz?.questions[currentQuestionIndex];
       if (!currentQuestion) return;
 
@@ -148,6 +154,7 @@ const HostGame = () => {
   const startQuestion = () => {
     const question = quiz.questions[currentQuestionIndex];
     if (!question) return;
+    setAnsweredIds(new Set());
 
     const safeQuestion = {
       id: question.id,
@@ -181,9 +188,6 @@ const HostGame = () => {
         const correctChoicesIds = question.choices.filter(c => c.is_correct).map(c => c.id);
         socket.emit('show_results', { room: roomId, results: { correct_choice_ids: correctChoicesIds } });
       }
-      // Раньше здесь был setTimeout(() => handleNext(), 3000) — убрали:
-      // он терялся при реконнекте хоста, оставляя его без возможности продолжить.
-      // Теперь переход дальше — по кнопке ниже.
   };
 
   const handleNext = async () => {
@@ -247,6 +251,7 @@ const HostGame = () => {
           <div className="uk-text-large uk-text-warning uk-margin-medium-top uk-margin-medium-bottom" style={{fontSize: '3rem'}}>
             {Math.ceil(timeLeft)}
           </div>
+          <p className="uk-text-meta">Ответили: {answeredIds.size} из {totalPlayers}</p>
           <p>Игроки думают...</p>
           <button className="uk-button uk-button-danger" onClick={handleTimeUp}>
             Остановить таймер (Все ответили)

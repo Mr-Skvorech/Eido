@@ -26,8 +26,6 @@ class Question(models.Model):
     quiz = models.ForeignKey(Quiz, related_name='questions', on_delete=models.CASCADE)
     text = models.CharField(max_length=500)
     time_limit = models.IntegerField(default=20, help_text="Время на ответ в секундах")
-    
-    # --- НОВЫЕ ПОЛЯ ---
     image = models.ImageField(upload_to='question_images/', blank=True, null=True, help_text="Изображение к вопросу")
     is_multiple_choice = models.BooleanField(default=False, help_text="Разрешить выбор нескольких вариантов")
 
@@ -48,7 +46,7 @@ class GameRoom(models.Model):
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
     pin = models.CharField(max_length=6, unique=True)
     is_active = models.BooleanField(default=True)
-    is_started = models.BooleanField(default=False)  # True после старта игры — до этого можно чистить "призрачных" участников
+    is_started = models.BooleanField(default=False)  # True после старта игры - до этого можно чистить "призрачных" участников
     created_at = models.DateTimeField(auto_now_add=True)
     current_question_index = models.IntegerField(default=0)
     is_finished = models.BooleanField(default=False)  # True после окончания игры

@@ -6,16 +6,13 @@ export default function HostLobby() {
   const { quizId, pin } = useParams();
   const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
-
-  // Флаг актуальности эффекта — защищает от гонки при StrictMode double-mount
+  const [copied, setCopied] = useState(false);
   const activeRef = useRef(true);
 
   useEffect(() => {
     activeRef.current = true;
 
     const onPlayerJoined = (data) => {
-      // Игнорируем событие, если этот инстанс эффекта уже "неактуален"
-      // (например, компонент успел размонтироваться/перемонтироваться)
       if (!activeRef.current) return;
 
       if (data?.name) {
@@ -49,8 +46,6 @@ export default function HostLobby() {
     if (socket.connected) {
       doJoin();
     } else {
-      // Если на момент монтирования сокет ещё не подключён —
-      // ждём connect и входим в комнату сразу после него
       socket.once('connect', doJoin);
     }
 
@@ -68,6 +63,16 @@ export default function HostLobby() {
     navigate(`/host/game/${quizId}/${pin}`);
   };
 
+  const handleCopyPin = async () => {
+    try {
+      await navigator.clipboard.writeText(pin);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Не удалось скопировать PIN', err);
+    }
+  };
+
   return (
     <div className="uk-container uk-margin-large-top uk-text-center">
       <div className="uk-card uk-card-default uk-card-body uk-box-shadow-large">
@@ -75,6 +80,10 @@ export default function HostLobby() {
         <h1 className="uk-heading-large uk-text-bolder uk-text-primary uk-margin-remove-top">
           {pin}
         </h1>
+        <button className="uk-button uk-button-default uk-button-small" type="button" onClick={handleCopyPin}>
+          <span uk-icon={copied ? 'icon: check' : 'icon: copy'} className="uk-margin-small-right"></span>
+          {copied ? 'Скопировано!' : 'Скопировать PIN'}
+        </button>
       </div>
 
       <div className="uk-margin-large-top">
@@ -99,8 +108,16 @@ export default function HostLobby() {
           ) : (
             players.map(player => (
                 <div key={player.session_token}>
-                    <div className="uk-card uk-card-secondary uk-card-body uk-padding-small uk-border-rounded">
-                        <strong>{player.name}</strong>
+                    <div
+                        className="uk-card uk-card-secondary uk-card-body uk-padding-small uk-border-rounded"
+                        style={{ overflow: 'hidden' }}
+                    >
+                        <strong
+                            title={player.name}
+                            style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                        >
+                            {player.name}
+                        </strong>
                     </div>
                 </div>
             ))

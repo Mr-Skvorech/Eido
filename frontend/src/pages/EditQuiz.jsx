@@ -38,7 +38,7 @@ export default function EditQuiz() {
                     text: q.text,
                     time_limit: q.time_limit,
                     is_multiple_choice: q.is_multiple_choice,
-                    image: q.image, // строка-URL с бэкенда (не base64!) — пересылать как есть нельзя
+                    image: q.image, // строка-URL с бэкенда (не base64!)
                     choices: q.choices.map(c => ({ id: c.id, text: c.text, is_correct: c.is_correct }))
                 })));
                 setLoading(false);
@@ -68,7 +68,7 @@ export default function EditQuiz() {
         try {
             const base64 = await convertToBase64(file);
             const updatedQuestions = [...questions];
-            updatedQuestions[qIndex].image = base64; // новая картинка — теперь это data:-строка
+            updatedQuestions[qIndex].image = base64; // новая картинка - теперь это data:-строка
             setQuestions(updatedQuestions);
         } catch (err) {
             notifyError("Ошибка кодирования картинки. Попробуйте другой файл.");
@@ -135,7 +135,7 @@ export default function EditQuiz() {
         const updatedQuestions = [...questions];
         if (updatedQuestions[qIndex].choices.length <= 2) return; // минимум 2 варианта
         updatedQuestions[qIndex].choices.splice(cIndex, 1);
-        // Если убрали единственный правильный — делаем правильным первый оставшийся
+        // Если убрали единственный правильный => делаем правильным первый оставшийся
         if (!updatedQuestions[qIndex].choices.some(c => c.is_correct)) {
             updatedQuestions[qIndex].choices[0].is_correct = true;
         }
@@ -148,14 +148,14 @@ export default function EditQuiz() {
         setSaving(true);
         try {
             // Готовим вопросы к отправке: картинку шлём, ТОЛЬКО если она новая (data:-строка).
-            // Если это старый URL с бэкенда — просто убираем ключ, чтобы бэкенд не пытался
+            // Если это старый URL с бэкенда => просто убираем ключ, чтобы бэкенд не пытался
             // распарсить обычную ссылку как Base64 и не потерял существующую картинку.
             const preparedQuestions = questions.map((q) => {
                 const { image, ...rest } = q;
                 if (typeof image === 'string' && image.startsWith('data:')) {
                     return { ...rest, image };
                 }
-                return rest; // без ключа 'image' — бэкенд оставит текущую картинку как есть
+                return rest; // без ключа 'image' - бэкенд оставит текущую картинку как есть
             });
 
             await updateQuiz(quizId, { title, description, questions: preparedQuestions });
