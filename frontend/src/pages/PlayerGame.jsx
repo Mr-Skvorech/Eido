@@ -134,7 +134,14 @@ const PlayerGame = () => {
                   disabled={status === 'answered'}
                   className={`uk-button uk-button-large uk-width-1-1 uk-margin-small-bottom 
                     ${isSelected ? 'uk-button-primary' : 'uk-button-default'}`}
-                  style={{ minHeight: '100px', fontSize: '1.5rem' }}
+                  style={{
+                      fontSize: 'clamp(1rem, 2vw, 1.5rem)',
+                      minHeight: '100px',
+                      height: 'auto',
+                      padding: '16px',
+                      whiteSpace: 'normal',
+                      overflowWrap: 'anywhere'
+                  }}
                   onClick={() => handleAnswer(choice.id)}
                 >
                   {choice.text}

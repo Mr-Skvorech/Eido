@@ -100,28 +100,25 @@ export default function HostLobby() {
           </button>
         </div>
 
-        <div className="uk-grid-small uk-child-width-1-2 uk-child-width-1-4@s uk-text-center" data-uk-grid>
-          {players.length === 0 ? (
-            <div className="uk-width-1-1 uk-text-muted">
-              Ожидание игроков...
-            </div>
-          ) : (
-            players.map(player => (
+        <div
+            className="uk-grid-small uk-child-width-1-2 uk-child-width-1-4@m uk-grid-match"
+            data-uk-grid
+        >
+            {players.map(player => (
                 <div key={player.session_token}>
                     <div
-                        className="uk-card uk-card-secondary uk-card-body uk-padding-small uk-border-rounded"
-                        style={{ overflow: 'hidden' }}
+                        className="uk-card uk-card-secondary uk-card-body uk-padding-small uk-border-rounded uk-flex uk-flex-center uk-flex-middle"
+                        style={{ minHeight: "80px" }}
                     >
                         <strong
+                            className="uk-text-center uk-text-truncate"
                             title={player.name}
-                            style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
                         >
                             {player.name}
                         </strong>
                     </div>
                 </div>
-            ))
-          )}
+            ))}
         </div>
       </div>
     </div>

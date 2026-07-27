@@ -21,7 +21,7 @@ export const registerUser = async (username, email, password) => {
     });
 
     if (!response.ok) {
-        throw new Error('Ошибка регистрации. Возможно, email уже занят.');
+        throw new Error('Ошибка регистрации. Возможно, email или username уже заняты.');
     }
     return response.json();
 };

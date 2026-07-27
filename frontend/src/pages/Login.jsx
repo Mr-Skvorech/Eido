@@ -21,7 +21,7 @@ export default function Login() {
 
             navigate('/');
         } catch (err) {
-            notifyError("Ошибка при входе. Проверьте данные и попробуйте снова.");
+            notifyError(err.message || "Ошибка при входе. Проверьте данные и попробуйте снова.");
             setError(err.message);
         }
     };

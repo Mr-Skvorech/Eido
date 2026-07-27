@@ -18,7 +18,7 @@ export default function Register() {
             // После успешной регистрации отправляем на страницу логина
             navigate('/login');
         } catch (err) {
-            notifyError("Ошибка при регистрации. Проверьте данные и попробуйте снова.");
+            notifyError(err.message || "Ошибка при регистрации. Проверьте данные и попробуйте снова.");
             setError(err.message);
         }
     };

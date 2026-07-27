@@ -161,16 +161,30 @@ export default function Dashboard() {
                                         <h3
                                             className="uk-card-title uk-margin-remove-bottom"
                                             title={quiz.title}
-                                            style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                                            style={{
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: 'vertical',
+                                                overflow: 'hidden',
+                                                overflowWrap: 'anywhere',
+                                                lineHeight: 1.3
+                                            }}
                                         >
                                             {quiz.title}
-                                        </h3>
+                                        </h3>                       
                                         <p className="uk-text-meta uk-margin-small-top">
                                             Дата создания: {new Date(quiz.created_at).toLocaleDateString()}
                                         </p>
                                         <p
                                             className="uk-text-break"
-                                            style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                                            style={{
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 3,
+                                                WebkitBoxOrient: 'vertical',
+                                                overflow: 'hidden',
+                                                overflowWrap: 'anywhere',
+                                                wordBreak: 'break-word'
+                                            }}
                                         >
                                             {quiz.description || 'Описание отсутствует.'}
                                         </p>
@@ -183,9 +197,9 @@ export default function Dashboard() {
                                             Открыть квиз →
                                         </button>
                                     </div>
-                                    <div className="uk-container uk-margin-top">
+                                    <div className="uk-margin-top">
                                         <button 
-                                            className="uk-button uk-button-primary uk-button-large" 
+                                            className="uk-button uk-button-primary uk-button-large uk-width-1-1" 
                                             onClick={() => handleLaunchQuiz(quiz.id)}
                                         >
                                             Запустить квиз и получить PIN
@@ -218,8 +232,14 @@ export default function Dashboard() {
                                 <div key={game.id}>
                                     <div className="uk-card uk-card-default uk-card-body">
                                         <div className="uk-flex uk-flex-between uk-flex-middle uk-margin-small-bottom">
-                                            <h3 className="uk-card-title uk-margin-remove">{game.quiz_title}</h3>
-                                            <span className="uk-badge">PIN {game.pin}</span>
+                                            <h3
+                                                className="uk-card-title uk-margin-remove"
+                                                style={{
+                                                    minWidth: 0,
+                                                    overflowWrap: 'anywhere'
+                                                }}
+                                            >{game.quiz_title}</h3>
+                                            <span className="uk-badge" style={{ flexShrink: 0, whiteSpace: "nowrap" }}>PIN {game.pin}</span>
                                         </div>
                                         <p className="uk-text-meta uk-margin-remove-top">
                                             {new Date(game.created_at).toLocaleString()} · {game.participants.length} участник(ов)
